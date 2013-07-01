@@ -51,11 +51,11 @@ class OpenADR2(object):
     # _control - 
     # _control_loop_signal - threading.Event() object
     # _pulse_vals
+    # _exit - A threading object via threading.Event()
 
     
-    def __init__(self, vtn_base_uri=None, vtn_poll_interval=DEFAULT_VTN_POLL_INTERVAL, ven_user=None, ven_passwd=None,
-                 ven_client_cert_key=None, ven_client_cert_pem=None, vtn_ca_certs=None, test_mode=False, start_thread=True,
-                 **event_config={}):
+    def __init__(self, event_config, vtn_base_uri=None, vtn_poll_interval=DEFAULT_VTN_POLL_INTERVAL, ven_id=None, ven_passwd=None,
+                 ven_client_cert_key=None, ven_client_cert_pem=None, vtn_ca_certs=None, test_mode=False, start_thread=True):
         self.vtn_base_uri = vtn_base_uri
 
         if self.vtn_base_uri: # append path
@@ -74,10 +74,10 @@ class OpenADR2(object):
         self.event_handler = event.get_instance(**event_config)     # Get the instance of the EventHandler
 
         # Have different credentials dependant if a 'ven_user' was supplied
-        if ven_user == None:
+        if ven_id== None:
             self.ven_credentials = (self.event_handler.ven_id, ven_passwd)
-        else
-            self.ven_credentials = (ven_user, ven_passwd)
+        else:
+            self.ven_credentials = (ven_id, ven_passwd)
 
         # Security & Authentication related
         self.ven_client_cert_key = ven_client_cert_key
@@ -94,8 +94,11 @@ class OpenADR2(object):
         # Set the control interface
         self._control = control.get_instance()
 
-        self.control_thread = None
+        # Add an exit thread for the module
+        self._exit = threading.Event()
+        self._exit.clear()
 
+        self.control_thread = None
         self.poll_thread = None
         start_thread = bool(start_thread)
         self._init_client(start_thread)
@@ -106,7 +109,6 @@ class OpenADR2(object):
                     target=self.control_event_loop)
             self.control_thread.daemon = True
             self.control_thread.start()
-
 
         logging.info( " +++++++++++++++ OADR2 module started ++++++++++++++ " )
         logging.info( ' test mode: %s', self.test_mode )
@@ -145,12 +147,11 @@ class OpenADR2(object):
 
     # HARDWARE
     def exit(self):
-        self._control_loop_signal.set() # notify the control loop to exit
-        self.control_thread.join(2) # TODO these threads don't really need to join,
+        self._control_loop_signal.set()     # notify the control loop to exit
+        self.control_thread.join(2)         # TODO these threads don't really need to join,
         if self.poll_thread is not None:
-            self.poll_thread.join(2)    # they are daemons.
-        bootstrap.BaseModule.exit(self)
-
+            self.poll_thread.join(2)        # they are daemons.
+        self._exit.set()
     
     # HTTP
     def poll_vtn_loop(self):

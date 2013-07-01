@@ -14,7 +14,7 @@ logging.basicConfig(
 
 from oadr2 import control, event, poll
 
-BASE_URI = 'http://localhost:8080/oadr2-vtn'
+BASE_URI = 'http://localhost:8080/oadr2-vtn-groovy'
 
 CLIENT_CERT_KEY_PATH = None #'./ven_key.pem'
 CLIENT_CERT_PATH = None #'./ven_cert.pem'
@@ -27,16 +27,20 @@ def main():
     controller = control.get_instance()
 
     # TODO: Add in something for the 2.0b spec later
-    config = {'vtn_ids': 'vtn_1,vtn_2,vtn_3,TH_VTN,vtn_rsa',
-              'interval': 10,
-              'ven_id':  'ven_py',
-              'vtn_uri': BASE_URI,
-              'ven_client_cert_key': CLIENT_CERT_KEY_PATH,
-              'ven_client_cert_pem': CLIENT_CERT_PATH,
-              'vtn_ca_certs': TRUST_CERTS
-              }
+    config = {
+        'vtn_poll_interval': 10,
+        'ven_id':  'ven_py',
+        'vtn_base_uri': BASE_URI,
+        'ven_client_cert_key': CLIENT_CERT_KEY_PATH,
+        'ven_client_cert_pem': CLIENT_CERT_PATH,
+        'vtn_ca_certs': TRUST_CERTS,
+        'event_config': {
+            'ven_id': 'ven_py',
+            'vtn_ids': 'vtn_1,vtn_2,vtn_3,TH_VTN,vtn_rsa',
+        }
+    }
      
-    poller = poll.OpenADR2(config=config)
+    poller = poll.get_instance(**config)
 
     # Some sort of loop thingy here
     print('Running...')
@@ -48,7 +52,7 @@ def main():
         pass
 
     # Close the poller
-    print('Exiting the OpenADR 2 poller')
+    print('Exiting the OpenADR 2 Poller')
     poller.exit()
 
     print('========DONE========')

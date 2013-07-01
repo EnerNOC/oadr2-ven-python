@@ -28,7 +28,7 @@ def get_instance():
     global __CONTROL_INSTANCE
 
     if __CONTROL_INSTANCE is None:
-        __CONTROL_INSTANCE = EventHandler()
+        __CONTROL_INSTANCE = ControlInterface()
 
     return __CONTROL_INSTANCE
 
