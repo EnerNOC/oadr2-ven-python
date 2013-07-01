@@ -10,6 +10,7 @@ from lxml import etree
 import event, poll
 
 import xml.etree.ElementTree
+from sleekxmpp.plugins.base import base_plugin
 from sleekxmpp.exceptions import XMPPError
 
 # Handler class/service for the XMPP stuff
@@ -22,6 +23,12 @@ class OpenADR2(poll.OpenADR2):
 
     def __init__(self,*args,**kwargs):
         poll.OpenADR2.__init__(self, *args, **kwargs)
+
+        # TODO: Pick up here
+        # TODO: Add a sleekxmpp.ClientXMPP object for handling XMPP stuff
+        # TODO: have the OpenADR2 plugin working
+        # TODO: fix messages stuff
+        #       Don't forget about namespaces
 
 
     # Setup/Start the client.
@@ -82,7 +89,7 @@ class OADR2Message(object):
     def __init__(self, payload=None, 
             id_=None, stanza_type='iq', iq_type='result', 
             from_=None, to=None, error=None, type_='OADR2', 
-            oadr_profile_level=event.OADR_PROFILE_20A):
+            oadr_profile_level=event.get_instance().oadr_profile_level):
 
         self.payload = payload
         self.id = id_
@@ -101,8 +108,6 @@ class OADR2Message(object):
         else:
             self.oadr_profile_level = OADR_PROFILE_20A     # Default/Safety, make it the 2.0a spec 
             self.ns_map = event.NS_A      
-
-        Message.__init__(self)
 
 
     def get_events(self):
@@ -133,6 +138,27 @@ class OADR2Message(object):
         return data
 
 
+class OpenADR2Plugin(base_plugin):
+    '''
+    OpenADR 2.0 XMPP handler
+    '''
 
-service_class = OpenADR2
+    def plugin_init(self):
+        self.xep = 'OADR2'
+        self.description = 'OpenADR2 XMPP EiEvent Implementation'
+        self.xmpp.add_handler("<iq type='set'><oadrDistributeEvent xmlns='%s' /></iq>" % \
+                event.get_instance().ns_map['oadr'], self._handle_iq)
 
+    def _handle_iq(self, iq):
+        try:
+            # Convert a "Standard Python Library XML object," to one from lxml
+            payload_element = lxml.etree.XML(xml.etree.ElementTree.tostring(iq[0]))
+            msg = OADR2Message(
+                    iq_type = iq.get('type'),
+                    id_ = iq.get('id'), 
+                    from_ = iq.get('from'),
+                    payload = payload_element )
+            self.msgHandler(msg)
+        except Exception, e:
+            logging.exception("OADR2 XMPP parse error: %s", e)
+            raise XMPPError(text=e) 
