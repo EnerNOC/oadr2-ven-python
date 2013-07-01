@@ -3,22 +3,17 @@ __author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com'
 import logging
 import time
 
-feedback_map = {
-    'a' : '00000000/pulse_1',
-    'b' : '00000000/pulse_2',
-}
-
 event_levels = ( 
-    '00000000/relay_1A',    # 1+
-    '00000000/relay_2A',    # 2+
+    'relay_1A',    # 1+
+    'relay_2A',    # 2+
 )
 
 # A sort of mock register/memory for the feedbacks and event levels
 register = {
-    '00000000/pulse_1': 0,       # (val, timestamp)
-    '00000000/pulse_2': 0,       # (val, timestamp)
-    '00000000/relay_1A': 0,
-    '00000000/relay_2A': 0,
+    'pulse_1': 0,       # (val, timestamp)
+    'pulse_2': 0,       # (val, timestamp)
+    'relay_1A': 0,
+    'relay_2A': 0,
 }
 
 __CONTROL_INSTANCE = None
@@ -47,6 +42,7 @@ class ControlInterface(object):
             else:
                 # We shoudn't be here
                 logging.warn('In ControlInterface, tried to get point_id "%s," which doesn\'t exist in the register.'%(point_id))
+                return None, None
         elif op == 'control_set':
             # Set something in the "register,"
             if (point_id in self._register) and (value is not None):
@@ -54,7 +50,8 @@ class ControlInterface(object):
             else:
                 if value is None:
                     logging.warn('In ControInterface, tried to set a None type value for register w/ point_id=%s.'%(point_id))
+                    return None
                 if point_id not in self._register:
                     logging.warn('In ControlInterface, tried to set pont_id "%s," which doesn\'t exist in the register.'%(point_id))
-
+                    return None
 
