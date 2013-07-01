@@ -14,14 +14,14 @@ logging.basicConfig(
 
 from oadr2 import control, event, poll
 
-BASE_URI = 'http://localhost:8080/oadr2-vtn-groovy'
+BASE_URI = 'http://localhost:8080/oadr2-vtn'
 
 CLIENT_CERT_KEY_PATH = None #'./ven_key.pem'
 CLIENT_CERT_PATH = None #'./ven_cert.pem'
 TRUST_CERTS = None #'./oadr_trust_certs.pem'
 
 def main():
-    logging.info('Testing XMPP Transmisssions')
+    logging.info('Testing HTTP Transmisssions')
 
     # Make an instance of the Control Interface
     controller = control.get_instance()
