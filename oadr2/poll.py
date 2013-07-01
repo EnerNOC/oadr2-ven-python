@@ -41,8 +41,6 @@ class OpenADR2(object):
     # ven_client_cert_key
     # ven_client_cert_pem
     # vtn_ca_certs 
-    # event_levels
-    # all_pulses
     # test_mode - Boolean value if we are in test mode or not
     # control_thread
     # poll_thread
@@ -50,7 +48,6 @@ class OpenADR2(object):
     # current_signal_level
     # _control - 
     # _control_loop_signal - threading.Event() object
-    # _pulse_vals
     # _exit - A threading object via threading.Event()
 
     
@@ -83,12 +80,11 @@ class OpenADR2(object):
         self.ven_client_cert_key = ven_client_cert_key
         self.ven_client_cert_pem = ven_client_cert_pem
         self.vtn_ca_certs = vtn_ca_certs
-       
-        self._pulse_vals = {}
+      
+        # Hardware stuff
+        self.event_levels = control.event_levels
 
         self.current_signal_level = 0 
-
-        # HARDWARE
         self.test_mode = bool(test_mode)
 
         # Set the control interface
@@ -238,7 +234,6 @@ class OpenADR2(object):
 
         try:
             self.current_signal_level = self.get_current_relay_level()
-            self.get_rpc_pulses()
 
         except Exception, ex:
             logging.warn("Error reading initial hardware state! %s",ex)
@@ -315,16 +310,6 @@ class OpenADR2(object):
         
         self.toggle_relays(highest_signal_val)
 
-        old_pulse_val, old_ts = self._pulse_vals.get(self.all_pulses[-1], (0,0))
-        self.get_rpc_pulses()
-        new_pulse_val, new_ts = self._pulse_vals.get(self.all_pulses[-1], (0,0))
-
-        if self.test_mode and old_pulse_val < new_pulse_val:
-            logging.info("----- Clearing all events!")
-            self.event_handler.update_all_events({})
-            self.toggle_relays(0)
-
-
     # HARDWARE
     def toggle_relays(self,signal_level):
         signal_level = float(signal_level)
@@ -347,20 +332,6 @@ class OpenADR2(object):
 
         return 0
 
-
-    # HARDWARE
-    def get_rpc_pulses(self):
-        '''
-        gather cumulative watt-hours for logging.
-        '''
-        # poll pulse count & send feedback
-        for p in self.all_pulses:
-            self._pulse_vals[p] = self._control.do_control_point('control_get',p)
-
-        for evt in self.event_handler.get_active_events():
-            if event.get_status(evt, self.event_handler.ns_map) != 'active': continue
-            # TODO send feedback
-                
 
     def is_module_active(self):
         '''
