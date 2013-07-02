@@ -19,13 +19,13 @@
         <eiMarketContext>
           <ns3:marketContext>http://MarketContext1</ns3:marketContext>
         </eiMarketContext>
-        <createdDateTime>2013-06-06T19:19:44Z</createdDateTime>
+        <createdDateTime>2013-06-06T19:19:26.000Z</createdDateTime>
         <eventStatus>active</eventStatus>
       </eventDescriptor>
       <eiActivePeriod>
         <ns4:properties>
           <ns4:dtstart>
-            <ns4:date-time>2013-06-06T19:21:44Z</ns4:date-time>
+            <ns4:date-time>2013-06-06T19:21:26.000Z</ns4:date-time>
           </ns4:dtstart>
           <ns4:duration>
             <ns4:duration>PT3M</ns4:duration>

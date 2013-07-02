@@ -27,7 +27,7 @@ class EventHandlerTest(unittest.TestCase):
         oadr_schema_file = open(os.path.join(SCHEMA_DIR, 'oadr_20a.xsd'))        # OpenADR
         oadr_schema_doc = etree.parse(oadr_schema_file)
         self.oadr_schema = etree.XMLSchema(oadr_schema_doc)
-        self.event_handler = event.EventHandler(config=self.config)
+        self.event_handler = event.EventHandler(**self.config)
         
         # Make things a little nicer for us to see
         print('')
@@ -286,7 +286,7 @@ class EventHandlerTest(unittest.TestCase):
         self.config['resource_id'] = 'Resource_123'
         self.config['party_id'] = 'Party_123'
         self.config['group_id'] = 'Group_123'
-        self.event_handler = event.EventHandler(config=self.config)
+        self.event_handler = event.EventHandler(**self.config)
 
         # Start looping through
         i = 1

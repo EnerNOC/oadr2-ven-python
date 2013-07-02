@@ -31,7 +31,7 @@ class EventHandlerTest(unittest.TestCase):
         oadr_schema_file = open(os.path.join(SCHEMA_DIR, 'oadr_20b.xsd'))        # OpenADR
         oadr_schema_doc = etree.parse(oadr_schema_file)
         self.oadr_schema = etree.XMLSchema(oadr_schema_doc)
-        self.event_handler = event.EventHandler(config=self.config)
+        self.event_handler = event.EventHandler(**self.config)
         
         # Make things a little nicer for us to see
         print('')
@@ -41,7 +41,7 @@ class EventHandlerTest(unittest.TestCase):
         pass
 
 
-    def test_build_request_payload(self):
+    def tst_build_request_payload(self):
         print('in test_build_request_payload()')
 
         # Generate the payload
@@ -62,7 +62,7 @@ class EventHandlerTest(unittest.TestCase):
         print('build_request_payload() OK')
 
 
-    def test_build_error_response(self):
+    def tst_build_error_response(self):
         print('in test_build_error_response')
         request = 'req_1'
         code = '404'            # Breaks when is a pure integer, must be turned into a string
@@ -95,7 +95,7 @@ class EventHandlerTest(unittest.TestCase):
 
         print('build_error_response() OK')
 
-    def test_build_created_payload(self):
+    def tst_build_created_payload(self):
         print('in test_build_created_payload()')
         
         # Make some sample events
@@ -141,7 +141,7 @@ class EventHandlerTest(unittest.TestCase):
 
         print('build_created_payload() OK')
 
-    def test_handle_payload(self):
+    def tst_handle_payload(self):
         print('in test_handle_payload()')
 
         # The files that we want to test against
@@ -183,7 +183,7 @@ class EventHandlerTest(unittest.TestCase):
         print('handle_payload() OK')
 
     # Tests Batch A from the sample XML files; used for events w/ changing mod numbers
-    def test_batch_a(self):
+    def tst_batch_a(self):
         print("in test_batch_a()")
 
         # The files
@@ -226,7 +226,7 @@ class EventHandlerTest(unittest.TestCase):
     # Test Batch B from the sample XML files; send an event, send a 2nd with a higher mod num,
     # then send one with a lower mod.
     # Similar in structure to test_batch_a()
-    def test_batch_b(self):
+    def tst_batch_b(self):
         print('in test_batch_b()')
 
         # The files
@@ -290,7 +290,7 @@ class EventHandlerTest(unittest.TestCase):
         self.config['resource_id'] = 'Resource_123'
         self.config['party_id'] = 'Party_123'
         self.config['group_id'] = 'Group_123'
-        self.event_handler = event.EventHandler(config=self.config)
+        self.event_handler = event.EventHandler(**self.config)
 
         # Start looping through
         i = 1
@@ -327,7 +327,7 @@ class EventHandlerTest(unittest.TestCase):
 
         print('test_batch_d() OK')
 
-    def test_20b_1(self):
+    def tst_20b_1(self):
         print('In test_20b_1()')
         
         files = [ 'sample_oadrPayload_20b.xml' ]

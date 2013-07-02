@@ -8,7 +8,7 @@
 			<ei:eventDescriptor>
 				<ei:eventID>Event_939393</ei:eventID>
 				<ei:modificationNumber>1</ei:modificationNumber>
-				<ei:modificationDateTime>2001-12-17T09:30:47Z</ei:modificationDateTime>
+				<ei:modificationDateTime>2001-12-17T09:30:47.000Z</ei:modificationDateTime>
 				<ei:modificationReason>Update</ei:modificationReason>
 				<ei:priority>1</ei:priority>
 				<ei:eiMarketContext>
@@ -22,7 +22,7 @@
 			<ei:eiActivePeriod>
 				<xcal:properties>
 					<xcal:dtstart>
-						<xcal:date-time>2001-12-17T09:40:47Z</xcal:date-time>
+						<xcal:date-time>2001-12-17T09:40:47.000Z</xcal:date-time>
 					</xcal:dtstart>
 					<xcal:duration>
 						<xcal:duration>PT30M</xcal:duration>

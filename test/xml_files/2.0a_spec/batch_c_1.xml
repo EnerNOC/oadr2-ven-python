@@ -96,7 +96,7 @@
         </eiEventSignal>
       </eiEventSignals>
       <eiTarget>
-        <venID>ven_s2</venID>
+        <venID>ven_py</venID>
       </eiTarget>
     </eiEvent>
     <ns6:oadrResponseRequired>always</ns6:oadrResponseRequired>
