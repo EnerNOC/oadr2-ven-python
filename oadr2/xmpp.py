@@ -5,6 +5,7 @@ __author__ = 'Thom Nichols <tnichols@enernoc.com>, Benjamin N. Summerton <bsumme
 import threading, time, logging, xdrlib, base64
 from cStringIO import StringIO
 from xml.sax.saxutils import escape as escape_xml
+import lxml
 from lxml import etree
 
 import event, poll
@@ -68,7 +69,6 @@ class OpenADR2(poll.OpenADR2):
 
 
     # Setup/Start the client.
-    # NOTE: the base class has a funciton of the same name, though it is never called
     # start_thread - To start the thread or to not
     def _init_client(self, start_thread):
         # Setup the XMPP Client that we are going to be using
@@ -83,15 +83,12 @@ class OpenADR2(poll.OpenADR2):
         self.xmpp_client.register_plugin('xep_0050')
         self.xmpp_client.register_plugin('xep_0199', pconfig={'keepalive': True, 'frequency': 240})
         self.xmpp_client.register_plugin('xep_0202')
-        self.xmpp_client.register_plugin('OpenADR2Plugin', module='oadr2.xmpp')
+        self.xmpp_client.register_plugin('OpenADR2Plugin', module='oadr2.xmpp',
+                                         pconfig={'msg_handler': self._handle_payload_signal})
         # TODO: Add XEP-0096?
 
         # Setup system information disco
         self.xmpp_client['xep_0030'].add_identity(category='system', itype='version', name='OpenADR2 Python VEN')
-#        self._message_signal_match = events.add_event_listener(
-#                self._handle_payload_signal, 
-#                'alvin\'s hot juicebox', 
-#                'message_signal')
         
         self.xmpp_client.connect((self.server_addr, self.server_port))
         self.xmpp_client.process(threaded=True)
@@ -110,21 +107,16 @@ class OpenADR2(poll.OpenADR2):
     # Handle a message
     # msg - A type of OADR2Message
     def _handle_payload_signal(self,msg):
-        print('HEY!')
-        print('We\'ve recieved a signal')
-        if msg.type != 'OADR2': return
+#        print('HEY!')
+#        print('We\'ve recieved a signal')
+        if msg.type != 'OADR2':
+            return
+
+        # Try to generate a response payload and send it back
         try:
-#            logging.debug('---------- MSG payload: %s',msg.payload.tag)
-#            logging.debug('---------- MSG child: %s',msg.payload[0].tag)
-#            logging.debug('---------- MSG children: %s',msg.get_events())
-           
-#            print('Payload:')
-#            print(etree.tostring(msg.payload, pretty_print=True))
-#            print('----\n')
+            logging.info('Signal (message) handler received a payload, processing...')
             response = self.event_handler.handle_payload( msg.payload )
-#            print('Response:')
-#            print(etree.tostring(response, pretty_print=True))
-#            print('----\n')
+            logging.info('Response Payload:\n%s\n----\n'%etree.tostring(response, pretty_print=True))
             self.send_reply( response, msg.from_ )
         except Exception, ex:
             logging.exception("Error processing OADR2 log request: %s", ex)
@@ -134,10 +126,12 @@ class OpenADR2(poll.OpenADR2):
     # payload - The body of the IQ stanza, i.e. the OpenADR xml stuff (etree.Element object)
     # to - The JID of whom the messge will go to
     def send_reply( self, payload, to ):
+        pass
         # ack the IQ
         iq = OADR2Message(
             payload = payload,
-            iq_type = 'set' )
+            iq_type = 'set'
+        )
 
         # TODO: have the client send a response
         
@@ -234,9 +228,10 @@ class OpenADR2Plugin(base_plugin):
         self.description = 'OpenADR 2.0 XMPP EiEvent Implementation'
         self.xmpp.add_handler("<iq type='set'><oadrDistributeEvent xmlns='%s' /></iq>"%event.OADR_XMLNS_A,
                               self._handle_iq)
+        self.msg_handler = self.config.get('msg_handler')
 
     def _handle_iq(self, iq):
-        logging.info('OpenADR2Plugin recieved a valid IQ Stanza. -- from=%s, to=%s'(iq.get('from'), iq.get('to')))
+        logging.info('OpenADR2Plugin: recieved a valid IQ Stanza. -- from=%s, to=%s'%(iq.get('from'), iq.get('to')))
         try:
             # Convert a "Standard Python Library XML object," to one from lxml
             payload_element = lxml.etree.XML(xml.etree.ElementTree.tostring(iq[0]))
@@ -247,9 +242,8 @@ class OpenADR2Plugin(base_plugin):
                 payload = payload_element
             )
             
-            # TODO: pass the message to the handler
-            logging.debug('RECEIVED PAYLOAD:\n----\n%s\n----\n'%payload_element)
-#            self.msg_handler(msg)
+            # And pass it to the message handler
+            self.msg_handler(msg)
         except Exception, e:
             logging.exception("OADR2 XMPP parse error: %s", e)
             raise XMPPError(text=e) 
