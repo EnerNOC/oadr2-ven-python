@@ -126,7 +126,7 @@
             </ei:eiEventBaseline>
 			</ei:eiEventSignals>
 			<ei:eiTarget>
-				<ei:venID>ven_s2</ei:venID>
+				<ei:venID>ven_py</ei:venID>
 			</ei:eiTarget>
 		</ei:eiEvent>
 		<oadr:oadrResponseRequired>always</oadr:oadrResponseRequired>
