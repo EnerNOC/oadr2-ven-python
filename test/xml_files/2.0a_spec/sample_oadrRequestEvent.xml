@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<oadr:oadrRequestEvent xmlns:emix="http://docs.oasis-open.org/ns/emix/2011/06" xmlns:ei="http://docs.oasis-open.org/ns/energyinterop/201110" xmlns:pyld="http://docs.oasis-open.org/ns/energyinterop/201110/payloads" xmlns:oadr="http://openadr.org/oadr-2.0a/2012/07" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<pyld:eiRequestEvent>
+		<pyld:requestID>String</pyld:requestID>
+		<ei:eventID>test-event-one</ei:eventID>
+		<emix:marketContext>http://www.altova.com</emix:marketContext>
+		<ei:venID>test-customer-one</ei:venID>
+		<pyld:eventFilter>all</pyld:eventFilter>
+		<pyld:replyLimit>0</pyld:replyLimit>
+	</pyld:eiRequestEvent>
+</oadr:oadrRequestEvent>

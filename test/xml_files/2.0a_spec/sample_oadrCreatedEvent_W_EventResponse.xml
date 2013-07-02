@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns3:oadrCreatedEvent
+  xmlns="http://docs.oasis-open.org/ns/energyinterop/201110"
+  xmlns:ns2="http://docs.oasis-open.org/ns/energyinterop/201110/payloads" xmlns:ns3="http://openadr.org/oadr-2.0a/2012/07">
+  <ns2:eiCreatedEvent>
+    <eiResponse>
+      <responseCode>200</responseCode>
+      <ns2:requestID/>
+    </eiResponse>
+    <eventResponses>
+      <eventResponse>
+        <responseCode>200</responseCode>
+        <ns2:requestID>OadrDisReq060613_032223_996</ns2:requestID>
+        <qualifiedEventID>
+          <eventID>Event060613_032223_996_0</eventID>
+          <modificationNumber>0</modificationNumber>
+        </qualifiedEventID>
+        <optType>optIn</optType>
+      </eventResponse>
+    </eventResponses>
+    <venID>TH_VEN</venID>
+  </ns2:eiCreatedEvent>
+</ns3:oadrCreatedEvent>
+

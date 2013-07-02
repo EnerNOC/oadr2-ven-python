@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--registration Response - simpleHttp Push-->
+<oadr:oadrCreatedPartyRegistration ei:schemaVersion="2.0a" xsi:schemaLocation="http://openadr.org/oadr-2.0b/2012/07 oadr_20b.xsd" xmlns:ei="http://docs.oasis-open.org/ns/energyinterop/201110" xmlns:pyld="http://docs.oasis-open.org/ns/energyinterop/201110/payloads" xmlns:oadr="http://openadr.org/oadr-2.0b/2012/07" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xcal="urn:ietf:params:xml:ns:icalendar-2.0">
+	<ei:eiResponse>
+		<ei:responseCode>200</ei:responseCode>
+		<ei:responseDescription>OK</ei:responseDescription>
+		<pyld:requestID>REQ_123</pyld:requestID>
+	</ei:eiResponse>
+	<ei:registrationID>REG_2222</ei:registrationID>
+	<ei:venID>VEN_123</ei:venID>
+	<ei:vtnID>VTN_1234</ei:vtnID>
+<oadr:oadrProfiles>
+		<oadr:oadrProfile>
+			<oadr:oadrProfileName>2.0a</oadr:oadrProfileName>
+			<oadr:oadrTransports>
+				<oadr:oadrTransport>
+					<oadr:oadrTransportName>simpleHttp</oadr:oadrTransportName>
+				</oadr:oadrTransport>
+			</oadr:oadrTransports>
+		</oadr:oadrProfile>
+				<oadr:oadrProfile>
+			<oadr:oadrProfileName>2.0b</oadr:oadrProfileName>
+			<oadr:oadrTransports>
+				<oadr:oadrTransport>
+					<oadr:oadrTransportName>simpleHttp</oadr:oadrTransportName>
+				</oadr:oadrTransport>
+				<oadr:oadrTransport>
+					<oadr:oadrTransportName>xmpp</oadr:oadrTransportName>
+				</oadr:oadrTransport>
+			</oadr:oadrTransports>
+		</oadr:oadrProfile>
+	</oadr:oadrProfiles>
+	<oadr:oadrServiceSpecificInfo>
+		<oadr:oadrService>
+			<oadr:oadrServiceName>EiRegisterParty</oadr:oadrServiceName>
+			<oadr:oadrInfo>
+				<oadr:oadrKey>A Key</oadr:oadrKey>
+				<oadr:oadrValue>A Value</oadr:oadrValue>
+			</oadr:oadrInfo>
+		</oadr:oadrService>
+	</oadr:oadrServiceSpecificInfo>
+</oadr:oadrCreatedPartyRegistration>
+
