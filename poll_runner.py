@@ -26,7 +26,6 @@ def main():
     # Make an instance of the Control Interface
     controller = control.get_instance()
 
-    # TODO: Add in something for the 2.0b spec later
     config = {
         'vtn_poll_interval': 10,
         'ven_id':  'ven_py',
