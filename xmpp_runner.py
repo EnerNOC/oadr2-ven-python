@@ -4,13 +4,13 @@ __author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com>'
 import sys, os
 sys.path.insert(0, os.getcwd())
 
-from oadr2 import control, xmpp
 import threading
 import logging
 logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s  %(message)s" )
 
+from oadr2 import control, xmpp
 
 BASE_URI = 'http://localhost:8080/oadr2-vtn'
 
@@ -21,23 +21,21 @@ def main():
     # Setup an instance of the Control Interface
     controller = control.get_instance()
 
-    oadr_config = {'vtn_ids': 'vtn_1,vtn_2,vtn_3,TH_VTN',
-              'ven_id':  'ven_py',
-              'vtn_uri': BASE_URI,
-              'ca_certs': 'ca_certs.pem',
-              'auth_private_key': 'rsa_key.pem',
-              'http_ca_certs': 'http_ca_certs.pem'}
-
-    pt_config = {
-            'user': 'ven_py@localhost/python',
-            'password': 'asdf',
-            'tmpsavedir': '/tmp',
-            'savedir': '/tmp',
-            'ca_certs': 'ca_certs.pem',
-            'auth_private_key': 'rsa_key.pem',
-            'http_ca_certs': 'http_ca_certs.pem'}
+    
+    p_config = {
+        'vtn_poll_interval': 10,
+        'ven_id':  'ven_py',
+        'vtn_base_uri': BASE_URI,
+        'ven_client_cert_key': None,
+        'ven_client_cert_pem': None,
+        'vtn_ca_certs': None,
+        'event_config': {
+            'ven_id': 'ven_py',
+            'vtn_ids': 'vtn_1,vtn_2,vtn_3,TH_VTN,vtn_rsa',
+        }
+    }
      
-    xmpper = xmpp.OpenADR2( config = oadr_config )
+    xmpper = xmpp.OpenADR2(poll_config=p_config, user='ven_py@localhost/python', password='asdf')
 
 
     # Some sort of loop thingy here

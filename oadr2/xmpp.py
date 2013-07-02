@@ -35,6 +35,11 @@ class OpenADR2(poll.OpenADR2):
     # Everything from poll.OpenADR2 class
     # xmpp_client - a sleekxmpp.ClientXMPP object, which will intercept the OpenADR2 stuff for us
     # _message_signal_match - an event listener for matching signals
+    # user - JID
+    # password - Password for accompanying JID
+    # http_certs - 
+    # server_addr - Address of the XMPP Server
+    # server_port - Port we should connect to
 
 
     # Initilize what will do XMPP magic for us
@@ -42,9 +47,15 @@ class OpenADR2(poll.OpenADR2):
     # user - JID of whom we want to login to as on the XMPP Server
     # password - Password for corresponding JID
     # http_certs - For XEP-0066 plugin
-    def __init__(self, poll_config, user, password, http_certs=None):
-        poll.OpenADR2.__init__(self, **poll_config)
+    def __init__(self, poll_config, user, password, server_addr='localhost', server_port=5222, http_certs=None):
         self.xmpp_client = None
+        self.user = user
+        self.password = password
+        self.server_addr = server_addr
+        self.server_port = int(server_port)
+        self.http_certs = http_certs
+
+        poll.OpenADR2.__init__(self, **poll_config)
 
         # TODO: Pick up here
         # TODO: Add a sleekxmpp.ClientXMPP object for handling XMPP stuff
@@ -61,18 +72,18 @@ class OpenADR2(poll.OpenADR2):
     # start_thread - To start the thread or to not
     def _init_client(self, start_thread):
         # Setup the XMPP Client that we are going to be using
-        self.xmpp_client = sleekxmpp.ClientXMPP(user, password)
+        self.xmpp_client = sleekxmpp.ClientXMPP(self.user, self.password)
         self.xmpp_client.add_event_handler('session_start', self.xmpp_session_start)
         self.xmpp_client.add_event_handler('message', self.xmpp_message)
         self.xmpp_client.register_plugin('xep_0004')
         self.xmpp_client.register_plugin('xep_0030')
         self.xmpp_client.register_plugin('xep_0047')
-        self.xmpp_client.register_plugin('xep_0066', pconfig={'ca_certs': http_certs})
+        self.xmpp_client.register_plugin('xep_0066', pconfig={'ca_certs': self.http_certs})
         self.xmpp_client.register_plugin('xep_0060')
         self.xmpp_client.register_plugin('xep_0050')
         self.xmpp_client.register_plugin('xep_0199', pconfig={'keepalive': True, 'frequency': 240})
         self.xmpp_client.register_plugin('xep_0202')
-        self.xmpp_client.register_plugin('OpenADR2Plugin') # pconfig={'module': ''}
+        self.xmpp_client.register_plugin('OpenADR2Plugin', module='oadr2.xmpp')
         # TODO: Add XEP-0096?
 
         # Setup system information disco
@@ -81,6 +92,9 @@ class OpenADR2(poll.OpenADR2):
 #                self._handle_payload_signal, 
 #                'alvin\'s hot juicebox', 
 #                'message_signal')
+        
+        self.xmpp_client.connect((self.server_addr, self.server_port))
+        self.xmpp_client.process(threaded=True)
 
     # 'session_start' event handler for our XMPP Client
     # event - An event.
@@ -138,8 +152,9 @@ class OpenADR2(poll.OpenADR2):
     def exit(self):
         # Shutdown the xmpp client
         logging.info('Shutting down the XMPP Client...')
+        self.xmpp_client.send_presence(pstatus='unavailable')
         self.xmpp_client.disconnect()
-        self.xmpp_client.stop()
+        self.xmpp_client.stop.set()
         self.xmpp_client = None
         logging.info('XMPP Client shutdown.')
 
