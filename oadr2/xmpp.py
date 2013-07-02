@@ -44,6 +44,7 @@ class OpenADR2(poll.OpenADR2):
     # http_certs - For XEP-0066 plugin
     def __init__(self, poll_config, user, password, http_certs=None):
         poll.OpenADR2.__init__(self, **poll_config)
+        self.xmpp_client = None
 
         # TODO: Pick up here
         # TODO: Add a sleekxmpp.ClientXMPP object for handling XMPP stuff
@@ -51,9 +52,17 @@ class OpenADR2(poll.OpenADR2):
         # TODO: fix messages stuff
         #       Don't forget about namespaces
 
+
+
+
+
+    # Setup/Start the client.
+    # NOTE: the base class has a funciton of the same name, though it is never called
+    # start_thread - To start the thread or to not
+    def _init_client(self, start_thread):
         # Setup the XMPP Client that we are going to be using
         self.xmpp_client = sleekxmpp.ClientXMPP(user, password)
-        self.xmpp_client.add_event_handler('session_start', self.xmpp_start)
+        self.xmpp_client.add_event_handler('session_start', self.xmpp_session_start)
         self.xmpp_client.add_event_handler('message', self.xmpp_message)
         self.xmpp_client.register_plugin('xep_0004')
         self.xmpp_client.register_plugin('xep_0030')
@@ -63,27 +72,19 @@ class OpenADR2(poll.OpenADR2):
         self.xmpp_client.register_plugin('xep_0050')
         self.xmpp_client.register_plugin('xep_0199', pconfig={'keepalive': True, 'frequency': 240})
         self.xmpp_client.register_plugin('xep_0202')
-        self.xmpp_client.register_plugin('OADR2', pconfig={'msgHandler': None, module='')   # FIXME: Update with correct values
+        self.xmpp_client.register_plugin('OpenADR2Plugin') # pconfig={'module': ''}
         # TODO: Add XEP-0096?
 
         # Setup system information disco
         self.xmpp_client['xep_0030'].add_identity(category='system', itype='version', name='OpenADR2 Python VEN')
-
-
-
-
-    # Setup/Start the client.
-    # NOTE: the base class has a funciton of the same name, though it is never called
-    # start_thread - To start the thread or to not
-    def _init_client(self, start_thread):
-        self._message_signal_match = events.add_event_listener(
-                self._handle_payload_signal, 
-                'alvin\'s hot juicebox', 
-                'message_signal')
+#        self._message_signal_match = events.add_event_listener(
+#                self._handle_payload_signal, 
+#                'alvin\'s hot juicebox', 
+#                'message_signal')
 
     # 'session_start' event handler for our XMPP Client
     # event - An event.
-    def xmpp_start(self, event):
+    def xmpp_session_start(self, event):
         self.xmpp_client.getRoster()
         self.xmpp_client.sendPresence()
 
@@ -95,6 +96,8 @@ class OpenADR2(poll.OpenADR2):
     # Handle a message
     # msg - A type of OADR2Message
     def _handle_payload_signal(self,msg):
+        print('HEY!')
+        print('We\'ve recieved a signal')
         if msg.type != 'OADR2': return
         try:
 #            logging.debug('---------- MSG payload: %s',msg.payload.tag)
@@ -133,6 +136,13 @@ class OpenADR2(poll.OpenADR2):
 
     # Shutdown the client
     def exit(self):
+        # Shutdown the xmpp client
+        logging.info('Shutting down the XMPP Client...')
+        self.xmpp_client.disconnect()
+        self.xmpp_client.stop()
+        self.xmpp_client = None
+        logging.info('XMPP Client shutdown.')
+
         poll.OpenADR2.exit(self)        # Stop the parent class as well
 
 class OADR2Message(object):
@@ -178,6 +188,8 @@ class OADR2Message(object):
         return event.findtext(('{%(ei)s}eiEventSignals/{%(ei)s}eiEventSignal/' + \
                 '{%(ei)s}currentValue/{%(ei)s}payloadFloat/{%(ei)s}value')%self.ns_map)
 
+    # Get the message's payload as XML
+    # Return: An XML String of the payload.  Does not include IQ tags
     def to_xml(self):
         data = []
         buffer = StringIO()
@@ -196,6 +208,12 @@ class OpenADR2Plugin(base_plugin):
     OpenADR 2.0 XMPP handler
     '''
 
+    # Class construtor, used to set a message handler
+    # msg_handler - where we want to pipe a message to
+#    def __init__(self, msg_handler):
+#        self.msg_handler = msg_handler
+
+    # Called when initialize the plugin, not the same as __init__
     def plugin_init(self):
         self.xep = 'OADR2'
         self.description = 'OpenADR 2.0 XMPP EiEvent Implementation'
@@ -203,17 +221,21 @@ class OpenADR2Plugin(base_plugin):
                               self._handle_iq)
 
     def _handle_iq(self, iq):
+        logging.info('OpenADR2Plugin recieved a valid IQ Stanza. -- from=%s, to=%s'(iq.get('from'), iq.get('to')))
         try:
             # Convert a "Standard Python Library XML object," to one from lxml
             payload_element = lxml.etree.XML(xml.etree.ElementTree.tostring(iq[0]))
             msg = OADR2Message(
-                    iq_type = iq.get('type'),
-                    id_ = iq.get('id'), 
-                    from_ = iq.get('from'),
-                    payload = payload_element )
-
-            # TODO: somehow, have it pass up to the signal handler in the main class of this module
-            self.msgHandler(msg)
+                iq_type = iq.get('type'),
+                id_ = iq.get('id'), 
+                from_ = iq.get('from'),
+                payload = payload_element
+            )
+            
+            # TODO: pass the message to the handler
+            logging.debug('RECEIVED PAYLOAD:\n----\n%s\n----\n'%payload_element)
+#            self.msg_handler(msg)
         except Exception, e:
             logging.exception("OADR2 XMPP parse error: %s", e)
             raise XMPPError(text=e) 
+
