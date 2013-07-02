@@ -98,7 +98,7 @@
       <eiTarget>
         <groupID>Group_123</groupID>
         <resourceID>Resource_123</resourceID>
-        <venID>ven_s2</venID>
+        <venID>ven_py</venID>
         <partyID>Party_123</partyID>
       </eiTarget>
     </eiEvent>
