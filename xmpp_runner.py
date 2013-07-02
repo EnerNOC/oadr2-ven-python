@@ -21,21 +21,25 @@ def main():
     # Setup an instance of the Control Interface
     controller = control.get_instance()
 
-    
-    p_config = {
-        'vtn_poll_interval': 10,
-        'ven_id':  'ven_py',
-        'vtn_base_uri': BASE_URI,
-        'ven_client_cert_key': None,
-        'ven_client_cert_pem': None,
-        'vtn_ca_certs': None,
-        'event_config': {
-            'ven_id': 'ven_py',
-            'vtn_ids': 'vtn_1,vtn_2,vtn_3,TH_VTN,vtn_rsa',
+
+    config = {
+        'user': 'ven_py@localhost/python',
+        'password': 'asdf',
+        'poll_config': {
+            'vtn_poll_interval': 10,
+            'ven_id':  'ven_py',
+            'vtn_base_uri': BASE_URI,
+            'ven_client_cert_key': None,
+            'ven_client_cert_pem': None,
+            'vtn_ca_certs': None,
+            'event_config': {
+                'ven_id': 'ven_py',
+                'vtn_ids': 'vtn_1,vtn_2,vtn_3,TH_VTN,vtn_rsa',
+            }
         }
     }
      
-    xmpper = xmpp.OpenADR2(poll_config=p_config, user='ven_py@localhost/python', password='asdf')
+    xmpper = xmpp.get_instance(**config)
 
 
     # Some sort of loop thingy here

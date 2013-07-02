@@ -60,16 +60,6 @@ class OpenADR2(poll.OpenADR2):
 
         poll.OpenADR2.__init__(self, **poll_config)
 
-        # TODO: Pick up here
-        # TODO: Add a sleekxmpp.ClientXMPP object for handling XMPP stuff
-        # TODO: have the OpenADR2 plugin working
-        # TODO: fix messages stuff
-        #       Don't forget about namespaces
-
-
-
-
-
     # Setup/Start the client.
     # start_thread - To start the thread or to not
     def _init_client(self, start_thread):
