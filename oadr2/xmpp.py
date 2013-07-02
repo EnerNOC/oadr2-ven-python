@@ -11,8 +11,10 @@ from lxml import etree
 import event, poll
 
 import xml.etree.ElementTree
+from xml.etree.cElementTree import XML
 
 import sleekxmpp
+from sleekxmpp.stanza.iq import Iq
 from sleekxmpp.plugins.base import base_plugin
 from sleekxmpp.exceptions import XMPPError
 
@@ -126,14 +128,22 @@ class OpenADR2(poll.OpenADR2):
     # payload - The body of the IQ stanza, i.e. the OpenADR xml stuff (etree.Element object)
     # to - The JID of whom the messge will go to
     def send_reply( self, payload, to ):
-        pass
-        # ack the IQ
+        # Make the message
         iq = OADR2Message(
             payload = payload,
             iq_type = 'set'
         )
 
-        # TODO: have the client send a response
+        # And send it if we are connected
+        if self.xmpp_client.state.current_state() == 'connected':
+            reply = Iq(self.xmpp_client, sto=to, stype=iq.iq_type)
+
+            xml_items = []
+            for i in iq.to_xml():
+                xml_items.append(XML(i))
+
+            reply.set_payload(xml_items)
+            self.xmpp_client.send(reply)
         
     # Our poll_vtn_loop.
     # Overloading the one in the base class
