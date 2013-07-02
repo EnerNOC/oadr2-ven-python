@@ -305,7 +305,7 @@ class EventHandler(object):
     def build_error_response(self,request_id,code,description=None):
         '''
         Send an error eiCreatedEvent payload.
-        TODO request_id and description are not used.
+        NOTE: request_id and description are not used.
         '''
         oadr = ElementMaker(namespace=self.ns_map['oadr'], nsmap=self.ns_map)
         pyld = ElementMaker(namespace=self.ns_map['pyld'], nsmap=self.ns_map)
@@ -367,7 +367,6 @@ class EventHandler(object):
     def get_active_events(self):
         '''
         for now this is just in-memory, should be in sqlite.
-        TODO should this be ordered?
         '''
         return self._events.itervalues()
 
@@ -402,7 +401,6 @@ class EventHandler(object):
         '''
         Get any current event for the given event ID.
         This should eventually pull from a sqlite table.
-        TODO VEN ID or VEN URI might eventually be a qualifier to make
         event ID globally unique if the VEN is participating w/ multiple VTNs
         '''
         return self._events.get(e_id,None)

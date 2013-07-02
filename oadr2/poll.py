@@ -67,7 +67,6 @@ class OpenADR2(object):
         # HARDWARE
         self._control_loop_signal = threading.Event()
 
-        # TODO: Event handler instance, fix
         self.event_handler = event.get_instance(**event_config)     # Get the instance of the EventHandler
 
         # Have different credentials dependant if a 'ven_user' was supplied
@@ -144,7 +143,7 @@ class OpenADR2(object):
     # HARDWARE
     def exit(self):
         self._control_loop_signal.set()     # notify the control loop to exit
-        self.control_thread.join(2)         # TODO these threads don't really need to join,
+        self.control_thread.join(2)
         if self.poll_thread is not None:
             self.poll_thread.join(2)        # they are daemons.
         self._exit.set()
@@ -315,7 +314,6 @@ class OpenADR2(object):
         signal_level = float(signal_level)
         if signal_level == self.current_signal_level: return
 
-        # TODO step up or down based on current signal level
         for i in range(len(self.event_levels)):
             control_val = 1 if i < signal_level else 0
             self._control.do_control_point( 'control_set',
