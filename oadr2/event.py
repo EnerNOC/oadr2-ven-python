@@ -6,15 +6,10 @@ __author__ = "Thom Nichols <tnichols@enernoc.com>, Ben Summerton <bsummerton@ene
 
 import uuid
 import logging
-
 from lxml import etree
 from lxml.builder import ElementMaker, E
-
 import schedule
 
-'''
-Code to manage eiEvents, parse schedules and current values.
-'''
 
 # Stuff for the 2.0a spec of OpenADR
 OADR_XMLNS_A = 'http://openadr.org/oadr-2.0a/2012/07'
@@ -70,10 +65,12 @@ OADR_PROFILE_20B = '2.0b'
 
 __EVENT_INSTANCE = None
 
-# Make sure that we only use one instance of th Event Handler
-# **kwargs - dictionary of keywored arugments
-# Returns: Single instance of EventHandler
 def get_instance(**kwargs):
+    '''
+    EventHandler should be treated as a singleton.  The first time that you call
+    this function, make sure to pass in a dictionary as keyworded arguements.
+    See "EventHandler," class for what you should pass in.
+    '''
     global __EVENT_INSTANCE
 
     if __EVENT_INSTANCE is None:
@@ -83,28 +80,37 @@ def get_instance(**kwargs):
 
 
 class EventHandler(object):
-    # Our member variables:
-    # --------
-    # ven_id - This VEN's id
-    # vtn_ids - List of ids of VTNs
-    # oadr_profile_level - The profile level we have
-    # ns_map - The XML namespace map we are using
-    # market_contexts - List of Market Contexts
-    # group_id - ID of group that VEN belogns to
-    # resource_id - ID of resource in VEN we want to manipulate
-    # party_id -
-    # _events - Dictionary of events; KEY=ei:eventID, VALUE=etree.Element
+    '''
+    The Event Handler for the project.
+
+    Our member variables:
+    --------
+    ven_id -- This VEN's id
+    vtn_ids -- List of ids of VTNs
+    oadr_profile_level -- The profile level we have
+    ns_map -- The XML namespace map we are using
+    market_contexts -- List of Market Contexts
+    group_id -- ID of group that VEN belogns to
+    resource_id -- ID of resource in VEN we want to manipulate
+    party_id -- ID of the party we are party of
+    _events -- Dictionary of events; KEY=ei:eventID, VALUE=etree.Element
+    '''
     
-    # Class constructor
-    # vtn_ids - CSV string of VTN Ids we pat attention to
-    # market_contexts - Another CSV string
-    # group_id - Which group we belong to
-    # resource_id - What resouce we are
-    # party_id - Which party are we party of
-    # ven_id - What is the ID of our unit
-    def __init__(self, vtn_ids=None, market_contexts=None, group_id=None,
-                 resource_id=None, party_id=None, ven_id=None,
+    def __init__(self, ven_id, vtn_ids=None, market_contexts=None,
+                 group_id=None, resource_id=None, party_id=None,
                  oadr_profile_level=OADR_PROFILE_20A):
+        '''
+        Class constructor
+
+        ven_id -- What is the ID of our unit
+        vtn_ids -- CSV string of VTN Ids we pat attention to
+        market_contexts -- Another CSV string
+        group_id -- Which group we belong to
+        resource_id -- What resouce we are
+        party_id -- Which party are we party of
+        oadr_profile_level -- What version of OpenADR 2.0 we want to use
+        '''
+
         # 'vtn_ids' is a CSV string of 
         self.vtn_ids = vtn_ids
         if self.vtn_ids is not None:
@@ -133,10 +139,16 @@ class EventHandler(object):
 
         self._events = {}
 
-    # Handle a payload
-    # payload - An etree.Element object of oadr:oadrDistributeEvent as root node
-    # Returns: An etree.Element object; which should be used as a response payload
+
     def handle_payload(self, payload):
+        '''
+        Handle a payload.  Puts Events into the handler's event list.
+
+        payload -- An lxml.etree.Element object of oadr:oadrDistributeEvent as root node
+
+        Returns: An lxml.etree.Element object; which should be used as a response payload
+        '''
+
         reply_events = []
         all_events = []
 
@@ -236,9 +248,14 @@ class EventHandler(object):
 
         return reply
 
-    # Assemble an XML payload to request an event from the VTN
-    # Returns: An etree.Element object
+    
     def build_request_payload(self):
+        '''
+        Assemble an XML payload to request an event from the VTN.
+
+        Returns: An lxml.etree.Element object
+        '''
+
         oadr = ElementMaker(namespace=self.ns_map['oadr'], nsmap=self.ns_map)
         pyld = ElementMaker(namespace=self.ns_map['pyld'], nsmap=self.ns_map)
         ei = ElementMaker(namespace=self.ns_map['ei'], nsmap=self.ns_map)
@@ -259,15 +276,19 @@ class EventHandler(object):
                 etree.tostring(payload,pretty_print=True) )
         return payload
 
-    # Assemble an XML payload to send out for events marked 'response required'
-    # events - List of tuples with the following structure:
-    #            (Event ID,
-    #             Modification Number,
-    #             Request ID,
-    #             Opt,
-    #             Status)
-    # Returns: An XML Tree in a string
+
     def build_created_payload(self,events):
+        '''
+        Assemble an XML payload to send out for events marked "response
+        required."
+
+        events -- List of tuples with the following structure:
+                    (Event ID, Modification Number, Request ID,
+                     Opt, Status)
+
+        Returns: An XML Tree in a string
+        '''
+
         # Setup the element makers
         oadr = ElementMaker(namespace=self.ns_map['oadr'], nsmap=self.ns_map)
         pyld = ElementMaker(namespace=self.ns_map['pyld'], nsmap=self.ns_map)
@@ -296,16 +317,17 @@ class EventHandler(object):
         return payload
 
 
-    # Assemble the XML for an error response payload
-    # request_id - Request ID of offending payload
-    # code - The HTTP Error Code Status we want to use
-    # description - An extra note on what was not acceptable
-    # Returns: An etree.Element object containing the payload
-    def build_error_response(self,request_id,code,description=None):
+    def build_error_response(self, request_id, code, description=None):
         '''
-        Send an error eiCreatedEvent payload.
-        NOTE: request_id and description are not used.
+        Assemble the XML for an error response payload.
+
+        request_id -- Request ID of offending payload
+        code -- The HTTP Error Code Status we want to use
+        description -- An extra note on what was not acceptable
+
+        Returns: An lxml.etree.Element object containing the payload
         '''
+
         oadr = ElementMaker(namespace=self.ns_map['oadr'], nsmap=self.ns_map)
         pyld = ElementMaker(namespace=self.ns_map['pyld'], nsmap=self.ns_map)
         ei = ElementMaker(namespace=self.ns_map['ei'], nsmap=self.ns_map)
@@ -317,27 +339,20 @@ class EventHandler(object):
                         pyld.requestID() ),
                     ei.venID(self.ven_id) ) )
 
-#        response = ei.eiResponse (
-#                       ei.responseCode(code),
-#                        pyld.requestID(request_id)
-#                    )
-
-        # Incase description is set
-#        if description is not None:
-#            response.append(ei.responseDescription(description))
-
-        # Make the payload
-#        payload = oadr.oadrCreatedEvent(
-#                pyld.eiCreatedEvent( response, ei.venID(self.ven_id )))
-
-
         logging.debug( "Error payload:\n%s", 
                 etree.tostring(payload,pretty_print=True) )
         return payload
 
-    # Checks to see if we haven been targeted by the event
-    # If none of the IDs belowed, then we want to respong to any event that we are given`
-    def check_target_info(self,evt):
+
+    def check_target_info(self, evt):
+        '''
+        Checks to see if we haven been targeted by the event.
+
+        evt -- lxml.etree.ElementTree object w/ an OpenADR Event structure
+
+        Returns: True if we are in the target info, False otherwise.
+        '''
+
         accept = True
         party_ids = get_party_ids(evt, self.ns_map)
         group_ids = get_group_ids(evt, self.ns_map)
@@ -360,112 +375,144 @@ class EventHandler(object):
                 accept = True
 
         return accept
-    
-    # Get an iterator of all the active events
-    # Return: An iterator containing the values of our _events dictionary
+   
+
     def get_active_events(self):
         '''
-        for now this is just in-memory, should be in sqlite.
+        Get an iterator of all the active events.
+
+        Return: An iterator containing the values of our _events dictionary
         '''
+
         return self._events.itervalues()
 
 
-    # Clear out all of the current events and add/update some other ones in
-    # event_dict - Dictionary of events we want to add/update.
-    #                - Key should be the Event ID
-    #                - Value should be the Event
     def update_all_events(self, event_dict):
         '''
-        replace all events with this event dict, keyed by event ID
+        Clear out all of the current events and add/update some other ones in.
+
+        event_dict -- Dictionary of events we want to add/update.
+                        Key: should be the Event ID
+                        Value: should be the Event (lxml.etree.ElementTree)
         '''
+
         self._events.clear()
         for e_id in event_dict.iterkeys():
             self._events[e_id] = event_dict[e_id]
 
 
-    # Sets an older event of e_id to the newer one, or just add a new one
-    # e_id - ID of the event we want to replace/add
-    # event - the event we want to add in
-    def update_event(self,e_id,event):
+    def update_event(self, e_id, event):
         '''
-        keep state for known seen events.  For now it's just an in-memory dict 
-        but eventually should be a sqlite table
+        Sets an older event of e_id to the newer one, or just add a new one.
+
+        e_id -- ID of the event we want to replace/add
+        event -- the event we want to add in
         '''
+
         self._events[e_id]= event
 
-    # Get an event w/ a specific id
-    # e_id - ID of the event we want
-    # Return: The event we want, or None
-    def get_event(self,e_id):
+    def get_event(self, e_id):
         '''
-        Get any current event for the given event ID.
-        This should eventually pull from a sqlite table.
-        event ID globally unique if the VEN is participating w/ multiple VTNs
+        Get an event w/ a specific id.
+
+        e_id -- ID of the event we want
+
+        Returns: The event we want, or None
         '''
+
         return self._events.get(e_id,None)
 
 
-    # Remove a list of events from our internal member dictionary
-    # event_id_list - List of Event IDs 
     def remove_events(self,evt_id_list):
         '''
-        Remove events from the VENs event state
+        Remove a list of events from our internal member dictionary
+
+        event_id_list - List of Event IDs 
         '''
+
         for e_id in evt_id_list:
             del self._events[e_id]
 
 
 
-# Gets the event id of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: an ei:eventID value
 def get_event_id(evt, ns_map=NS_A):
+    '''
+    Gets the event id of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: an ei:eventID value
+    '''
+
     return evt.findtext("ei:eventDescriptor/ei:eventID",namespaces=ns_map)
 
 
-# Gets the status of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: an ei:eventStatus value
 def get_status(evt, ns_map=NS_A):
+    '''
+    Gets the status of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: an ei:eventStatus value
+    '''
+
     return evt.findtext("ei:eventDescriptor/ei:eventStatus",namespaces=ns_map)
 
-# Gets the mod number of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: an ei:modificationNumber value
+
 def get_mod_number(evt, ns_map=NS_A):
+    '''
+    Gets the mod number of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: an ei:modificationNumber value
+    '''
+
     return int( evt.findtext(
         "ei:eventDescriptor/ei:modificationNumber",
         namespaces=ns_map) )
 
-# Gets the market context of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: an emix:marketContext value
+
 def get_market_context(evt, ns_map=NS_A):
+    '''
+    Gets the market context of an event
+
+    evt -- lxml.etree.Element object
+    ns_map --  Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: an emix:marketContext value
+    '''
     return evt.findtext("ei:eventDescriptor/ei:eiMarketContext/emix:marketContext",namespaces=ns_map)
 
 
-# Gets the signal value of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: an ei:value value
 def get_current_signal_value(evt, ns_map=NS_A):
+    '''
+    Gets the signal value of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: an ei:value value
+    '''
+
     return evt.findtext(
         'ei:eiEventSignals/ei:eiEventSignal/ei:currentValue/' + \
         'ei:payloadFloat/ei:value', namespaces=ns_map)
 
 
-# Gets the signals of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: A list of tuples of (xcal:duration, xcal:text, ei:value)
 def get_signals(evt, ns_map=NS_A):
     '''
-    return a list of tuples in the form (duration,uid,signalPayload_value)
+    Gets the signals of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: A list of tuples of (xcal:duration, xcal:text, ei:value)
     '''
+
     simple_signal = None
     signals = []
     for signal in evt.iterfind( 'ei:eiEventSignals/ei:eiEventSignal', namespaces=ns_map ):
@@ -475,7 +522,8 @@ def get_signals(evt, ns_map=NS_A):
         if signal_name == 'simple' and signal_type in VALID_SIGNAL_TYPES:
             simple_signal = signal  # This is A profile only conformance rule!
 
-    if simple_signal is None: return None
+    if simple_signal is None:
+        return None
 
     for interval in simple_signal.iterfind( 'strm:intervals/ei:interval', namespaces=ns_map ):
         duration = interval.findtext( 'xcal:duration/xcal:duration', namespaces=ns_map )
@@ -486,39 +534,46 @@ def get_signals(evt, ns_map=NS_A):
     return signals
 
 
-# Gets the active period start of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: a schedule'd datetime object
 def get_active_period_start(evt, ns_map=NS_A):
     '''
-    Get the activeperiod start as a datetime
-    `event` must be an ei:eiEvent lxml.etree.Element
+    Gets the active period start of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: a scheduled datetime object
     '''
+
     dttm_str = evt.findtext(
             'ei:eiActivePeriod/xcal:properties/xcal:dtstart/xcal:date-time',
             namespaces=ns_map )
     return schedule.str_to_datetime(dttm_str)
 
 
-# Sets the "active period start," of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
 def set_active_period_start(evt,dttm, ns_map=NS_A):
+    '''
+    Sets the "active period start," of an event
+
+    evt -- lxml.etree.Element object
+    ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+    '''
+
     active_period_element = evt.find(
             'ei:eiActivePeriod/xcal:properties/xcal:dtstart/xcal:date-time',
             namespaces=ns_map )
     active_period_element.text = schedule.dttm_to_str(dttm)
 
 
-# Gets the "start before after," of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: A tuple of (xcal:startbefore, xcal:startafter)
 def get_start_before_after(evt, ns_map=NS_A):
     '''
-    Get the startBefore/ startAfter elements.  May be (None,None)
+    Gets the "start before after," of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: A tuple of (xcal:startbefore, xcal:startafter)
     '''
+
     return ( evt.findtext(
             'ei:eiActivePeriod/xcal:properties/xcal:tolerance/xcal:tolerate/xcal:startbefore',
             namespaces=ns_map ),
@@ -527,31 +582,53 @@ def get_start_before_after(evt, ns_map=NS_A):
             namespaces=ns_map ) )
 
 
-# Gets the group IDs of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec\
-# Returns: A list of ei:groupID
 def get_group_ids(evt, ns_map=NS_A):
+    '''
+    Gets the group IDs of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec\
+
+    Returns: A list of ei:groupID
+    '''
+
     return [e.text for e in evt.iterfind('ei:eiTarget/ei:groupID',namespaces=ns_map)]
 
-# Gets the resource IDs of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: A list of ei:resourceID
 def get_resource_ids(evt, ns_map=NS_A):
+    '''
+    Gets the resource IDs of an event
+
+    evt -- lxml.etree.Element object
+    ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: A list of ei:resourceID
+    '''
+
     return [e.text for e in evt.iterfind('ei:eiTarget/ei:resourceID',namespaces=ns_map)]
 
-# Gets the party IDs of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: A list of ei:partyID
+
 def get_party_ids(evt, ns_map=NS_A):
+    '''
+    Gets the party IDs of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: A list of ei:partyID
+    '''
+
     return [e.text for e in evt.iterfind('ei:eiTarget/ei:partyID',namespaces=ns_map)]
 
-# Gets the VEN IDs of an event
-# evt - etree.Element object
-# ns_map - Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
-# Returns: A list of ei:venID
+
 def get_ven_ids(evt, ns_map=NS_A):
+    '''
+    Gets the VEN IDs of an event
+
+    evt -- lxml.etree.Element object
+    ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
+
+    Returns: A list of ei:venID
+    '''
+
     return [e.text for e in evt.iterfind('ei:eiTarget/ei:venID',namespaces=ns_map)]
 
