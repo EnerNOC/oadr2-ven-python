@@ -95,7 +95,7 @@ class OpenADR2(object):
         self.test_mode = bool(test_mode)
 
         # Set the control interface
-        self._control = control.get_instance()
+        self._control = control.ControlInterface()
 
         # Add an exit thread for the module
         self._exit = threading.Event()
@@ -195,7 +195,7 @@ class OpenADR2(object):
         payload = self.event_handler.build_request_payload()
 
         # Make the request
-        req = urllib2.Request(uri, etree.tostring(payload), dict(DEFAULT_HEADERS))
+        req = urllib2.Request(event_uri, etree.tostring(payload), dict(DEFAULT_HEADERS))
         logging.debug('Request:\n%s\n----'%(etree.tostring(payload, pretty_print=True)))
         logging.debug("Request to: %s", req.get_full_url())
 
@@ -232,7 +232,6 @@ class OpenADR2(object):
         uri -- The URI (of the VTN) where the response should be sent
         '''
 
-        payload -- an lxml.etree.ElementTree object 
         request = urllib2.Request(uri, etree.tostring(payload), dict(DEFAULT_HEADERS))
         resp = self.http.open(request,None,REQUEST_TIMEOUT)
         logging.debug("EiEvent response: %s", resp.getcode())

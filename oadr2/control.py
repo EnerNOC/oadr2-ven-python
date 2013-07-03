@@ -25,14 +25,35 @@ class EventController(object):
         pass
 
 
-# This class is a sort of interface to the hardware
 class ControlInterface(object):
+    '''
+    ControlInterface is a class that is used to interface with hardware that
+    this code may run on.
+
+    Member variables:
+    _register -- A sorty of "memory," to store/get relay values.
+    '''
+
+
     def __init__(self):
+        '''
+        Initialize the class.
+        '''
         self._register = register.copy() # Use our own register for the control mock
 
-    def do_control_point(self, op, point_id, value=None, callback=None):
+
+    def do_control_point(self, op, point_id, value=None):
+        '''
+        Do an operation on a control point (e.g. get/set)
+
+        op -- Either 'control_get' to get a value, or 'control_set' to set it.
+        point_id -- What point to operate on
+        value -- When setting, this is what to set the point to
+
+        Returns: on a Get, it will return the value of the point requested
+        '''
+
         if op == 'control_get':
-            
             # Perform an 'Control Get' operation
             if point_id in self._register:
                 return self._register[point_id], time.time()
