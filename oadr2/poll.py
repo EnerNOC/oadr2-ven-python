@@ -18,7 +18,6 @@ DEFAULT_HEADERS = {
 REQUEST_TIMEOUT = 5                  # HTTP request timeout
 DEFAULT_VTN_POLL_INTERVAL = 300      # poll the VTN every X seconds
 OADR2_URI_PATH = 'OpenADR2/Simple/'  # URI of where the VEN needs to request from
-CONTROL_LOOP_INTERVAL = 30           # update control state every X second
 
 # A Cipther list.  To configure properly, see: http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT
 HTTPS_CIPHERS = 'TLS_RSA_WITH_AES_256_CBC_SHA'
@@ -42,9 +41,7 @@ class OpenADR2(object):
     control_thread
     poll_thread
     control_thread -- threading.Thread() object w/ name of 'oadr2.control'
-    current_signal_level
-    _control -- 
-    _control_loop_signal -- threading.Event() object
+    event_controller -- A control.EventController object.
     _exit -- A threading object via threading.Event()
     '''
    
@@ -79,8 +76,6 @@ class OpenADR2(object):
             logging.warn('Invalid poll interval: %s', self.vtn_poll_interval)
             self.vtn_poll_interval = DEFAULT_VTN_POLL_INTERVAL
 
-        self._control_loop_signal = threading.Event()
-
         self.event_handler = event.get_instance(**event_config)     # Get the instance of the EventHandler
 
         # Security & Authentication related
@@ -91,15 +86,14 @@ class OpenADR2(object):
         # Hardware stuff
         self.event_levels = control.event_levels
 
-        self.current_signal_level = 0 
         self.test_mode = bool(test_mode)
-
-        # Set the control interface
-        self._control = control.ControlInterface()
 
         # Add an exit thread for the module
         self._exit = threading.Event()
         self._exit.clear()
+
+        # Get the Event controller working
+        self.event_controller = control.EventController(self.event_handler)
 
         self.control_thread = None
         self.poll_thread = None
@@ -109,7 +103,7 @@ class OpenADR2(object):
         if start_thread:
             self.control_thread = threading.Thread(
                     name='oadr2.control',
-                    target=self.control_event_loop)
+                    target=self.event_controller.control_event_loop)
             self.control_thread.daemon = True
             self.control_thread.start()
 
@@ -153,10 +147,11 @@ class OpenADR2(object):
         Shutdown the HTTP client, join the running threads and exit.
         '''
 
-        self._control_loop_signal.set()     # notify the control loop to exit
+        self.event_controller._control_loop_signal.set()     # notify the control loop to exit
         self.control_thread.join(2)
         if self.poll_thread is not None:
             self.poll_thread.join(2)        # they are daemons.
+        self.event_controller._exit.set()
         self._exit.set()
    
 
@@ -219,7 +214,7 @@ class OpenADR2(object):
         # If we have a generated reply:
         if reply is not None:
             logging.debug('Reply:\n%s\n----'%(etree.tostring(reply, pretty_print=True)))
-            self._control_loop_signal.set()    # tell the control loop to update control
+            self.event_controller._control_loop_signal.set()    # tell the control loop to update control
             self.send_reply(reply, event_uri)  # And send it
 
 
@@ -237,130 +232,6 @@ class OpenADR2(object):
         logging.debug("EiEvent response: %s", resp.getcode())
 
 
-    def control_event_loop(self):
-        '''
-        This is the threading loop to perform control based on current oadr events
-        Note the current implementation simply loops based on CONTROL_LOOP_INTERVAL
-        except when an updated event is received by a VTN.
-        '''
-
-        self._exit.wait(10)  # give a couple seconds before performing first control
-
-        try:
-            self.current_signal_level = self.get_current_relay_level()
-
-        except Exception, ex:
-            logging.warn("Error reading initial hardware state! %s",ex)
-
-        while not self._exit.is_set():
-            try:
-                logging.debug("Updating control states...")
-                events = self.event_handler.get_active_events()
-                self.do_control(events)
-
-            except Exception as ex:
-                logging.exception("Control loop error: %s", ex)
-
-            self._control_loop_signal.wait(CONTROL_LOOP_INTERVAL)
-            self._control_loop_signal.clear() # in case it was triggered by a poll update
-
-        logging.info("Control loop exiting.")
-
-
-    def do_control(self, events):
-        '''
-        Called by `control_event_loop()` when event states should be updated.
-        This parses through the events, and toggles them if they are active. 
-
-        events -- List of lxml.etree.ElementTree objects (with OpenADR 2.0 tags)
-        '''
-        highest_signal_val = 0
-        remove_events = []
-        for e in events:
-            try:
-                e_id = event.get_event_id(e, self.event_handler.ns_map)
-                e_mod_num = event.get_mod_number(e, self.event_handler.ns_map)
-                e_status = event.get_status(e, self.event_handler.ns_map)
-
-                if not self.event_handler.check_target_info(e):
-                    logging.debug("Ignoring event %s - no target match", e_id)
-                    continue
-
-                event_start_dttm = event.get_active_period_start(e, self.event_handler.ns_map)
-                signals = event.get_signals(e, self.event_handler.ns_map)
-
-                if signals is None:
-                    logging.debug("Ignoring event %s - no valid signals", e_id)
-                    continue
-
-                logging.debug("All signals: %r", signals)
-                intervals = [s[0] for s in signals]
-                current_interval = schedule.choose_interval( event_start_dttm, intervals )
-
-                if current_interval is None:
-                    logging.debug("Event %s(%d) has ended", e_id, e_mod_num)
-                    remove_events.append(e_id)
-                    continue
-
-                if current_interval < 0:
-                    logging.debug("Event %s(%d) has not started yet.", e_id, e_mod_num)
-                    continue
-
-                logging.debug('---------- chose interval %d', current_interval)
-                _, interval_uid, signal_level = signals[current_interval]
-#                signal_level = event.get_current_signal_value(e, self.event_handler.ns_map)
-
-                logging.debug('Control loop: Evt ID: %s(%s); Interval: %s; Current Signal: %s',
-                        e_id, e_mod_num, interval_uid, signal_level )
-                
-                signal_level = float(signal_level) if signal_level is not None else 0
-                highest_signal_val = max(signal_level, highest_signal_val)
-
-            except Exception as e:
-                logging.exception("Error parsing event: %s", e)
-
-        self.event_handler.remove_events(remove_events)
-
-        logging.debug("Highest signal level is: %f", highest_signal_val)
-        
-        self.toggle_relays(highest_signal_val)
-
-    
-    def toggle_relays(self, signal_level):
-        '''
-        Toggles the relays on the hardware (via the control interface).
-
-        signal_level -- If it is the same as the current signal level, the
-                        function will exit.  Else, it will change the
-                        signal relay
-        '''
-
-        # Run a check
-        signal_level = float(signal_level)
-        if signal_level == self.current_signal_level:
-            return
-
-        for i in range(len(self.event_levels)):
-            control_val = 1 if i < signal_level else 0
-            self._control.do_control_point('control_set', self.event_levels[i], control_val)
-
-        self.current_signal_level = signal_level
-
-
-    def get_current_relay_level(self):
-        '''
-        Gets the current relay levels for us (from the control interface).
-
-        Returns: '0' if all control points are at '0'.  Any non-Zero number
-                  otherwise.
-        '''
-
-        for i in xrange(len(self.event_levels),0,-1):
-             val = self._control.do_control_point('control_get', self.event_levels[i-1])
-             if val:
-                return i
-
-        return 0
 
 
 # http://stackoverflow.com/questions/1875052/using-paired-certificates-with-urllib2
