@@ -16,16 +16,11 @@ register = {
     'relay_2A': 0,
 }
 
-__CONTROL_INSTANCE = None
 
-# We should only have once instance of the Control Interface in use
-def get_instance():
-    global __CONTROL_INSTANCE
-
-    if __CONTROL_INSTANCE is None:
-        __CONTROL_INSTANCE = ControlInterface()
-
-    return __CONTROL_INSTANCE
+# Used by poll.OpenADR2 to handle events
+class EventController(object):
+    def __init__(self):
+        pass
 
 
 # This class is a sort of interface to the hardware

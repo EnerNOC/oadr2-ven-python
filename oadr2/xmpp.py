@@ -2,7 +2,7 @@
 
 __author__ = 'Thom Nichols <tnichols@enernoc.com>, Benjamin N. Summerton <bsummerton@enernoc.com>'
 
-import threading, time, logging, xdrlib, base64
+import threading, logging
 from cStringIO import StringIO
 from xml.sax.saxutils import escape as escape_xml
 import lxml
@@ -11,25 +11,13 @@ from lxml import etree
 import event, poll
 
 import xml.etree.ElementTree
-from xml.etree.cElementTree import XML
+from xml.etree.cElementTree import XML  # TODO: make sure we use CElementTree
 
 import sleekxmpp
 from sleekxmpp.stanza.iq import Iq
 from sleekxmpp.plugins.base import base_plugin
 from sleekxmpp.exceptions import XMPPError
 
-
-__XMPP_INSTANCE = None
-
-# Make sure that we only get once instance of the poll thingy
-def get_instance(**kwargs):
-    global __XMPP_INSTANCE
-
-    if __XMPP_INSTANCE is None:
-        __XMPP_INSTANCE = OpenADR2(**kwargs)
-
-    return __XMPP_INSTANCE
-    
 
 # Handler class/service for the XMPP stuff
 class OpenADR2(poll.OpenADR2):
@@ -49,14 +37,12 @@ class OpenADR2(poll.OpenADR2):
     # **poll_config - A dictionary of Keyord arguemnts for the base class (poll.OpenADR2)
     # user - JID of whom we want to login to as on the XMPP Server
     # password - Password for corresponding JID
-    # http_certs - For XEP-0066 plugin
-    def __init__(self, poll_config, user, password, server_addr='localhost', server_port=5222, http_certs=None):
+    def __init__(self, poll_config, user, password, server_addr='localhost', server_port=5222):
         self.xmpp_client = None
         self.user = user
         self.password = password
         self.server_addr = server_addr
         self.server_port = int(server_port)
-        self.http_certs = http_certs
 
         poll.OpenADR2.__init__(self, **poll_config)
 
@@ -67,17 +53,15 @@ class OpenADR2(poll.OpenADR2):
         self.xmpp_client = sleekxmpp.ClientXMPP(self.user, self.password)
         self.xmpp_client.add_event_handler('session_start', self.xmpp_session_start)
         self.xmpp_client.add_event_handler('message', self.xmpp_message)
+        # TODO: double check XEPs
         self.xmpp_client.register_plugin('xep_0004')
         self.xmpp_client.register_plugin('xep_0030')
-        self.xmpp_client.register_plugin('xep_0047')
-        self.xmpp_client.register_plugin('xep_0066', pconfig={'ca_certs': self.http_certs})
         self.xmpp_client.register_plugin('xep_0060')
         self.xmpp_client.register_plugin('xep_0050')
         self.xmpp_client.register_plugin('xep_0199', pconfig={'keepalive': True, 'frequency': 240})
         self.xmpp_client.register_plugin('xep_0202')
         self.xmpp_client.register_plugin('OpenADR2Plugin', module='oadr2.xmpp',
-                                         pconfig={'msg_handler': self._handle_payload_signal})
-        # TODO: Add XEP-0096?
+                                         pconfig={'callback': self._handle_payload_signal})
 
         # Setup system information disco
         self.xmpp_client['xep_0030'].add_identity(category='system', itype='version', name='OpenADR2 Python VEN')
@@ -88,20 +72,18 @@ class OpenADR2(poll.OpenADR2):
     # 'session_start' event handler for our XMPP Client
     # event - An event.
     def xmpp_session_start(self, event):
-        self.xmpp_client.getRoster()
         self.xmpp_client.sendPresence()
 
     # 'message' event handler for our XMPP Client
+    # NOTE: should never really receive one
     # msg - The Message.
     def xmpp_message(self, msg):
         logging.info(msg)
 
     # Handle a message
     # msg - A type of OADR2Message
+    # TODO: NO signals!
     def _handle_payload_signal(self,msg):
-        if msg.type != 'OADR2':
-            return
-
         # Try to generate a response payload and send it back
         try:
             logging.info('Signal (message) handler received a payload, processing...')
@@ -117,21 +99,25 @@ class OpenADR2(poll.OpenADR2):
     # to - The JID of whom the messge will go to
     def send_reply( self, payload, to ):
         # Make the message
-        iq = OADR2Message(
+        iq = OADR2Message( #TODO: chnage name
             payload = payload,
             iq_type = 'set'
         )
 
         # And send it if we are connected
-        if self.xmpp_client.state.current_state() == 'connected':
-            reply = Iq(self.xmpp_client, sto=to, stype=iq.iq_type)
+        if self.xmpp_client.state.current_state() != 'connected':
+            logging.error('Not connected, cannot send response')
+            return
 
-            xml_items = []
-            for i in iq.to_xml():
-                xml_items.append(XML(i))
+        reply = Iq(self.xmpp_client, sto=to, stype=iq.iq_type)
 
-            reply.set_payload(xml_items)
-            self.xmpp_client.send(reply)
+        xml_items = []
+        for i in iq.to_xml():
+            xml_items.append(XML(i))
+
+        # TODO: test passing payload to set_payload; pass directly-ish
+        reply.set_payload(xml_items)
+        self.xmpp_client.send(reply)
         
     # Our poll_vtn_loop.
     # Overloading the one in the base class
@@ -157,16 +143,14 @@ class OADR2Message(object):
 
     def __init__(self, payload=None, 
             id_=None, stanza_type='iq', iq_type='result', 
-            from_=None, to=None, error=None, type_='OADR2', 
+            from_=None, to=None, 
             oadr_profile_level=event.OADR_PROFILE_20A):
 
         self.payload = payload
         self.id = id_
         self.from_ = from_
-        self.type = type_
         self.stanza_type = stanza_type
         self.iq_type = iq_type
-        self.error= error
         self.oadr_profile_level = oadr_profile_level
         
         # Set the namespace dependant upon the profile level
@@ -203,8 +187,6 @@ class OADR2Message(object):
         if self.payload is not None: 
             buffer.write(etree.tostring(self.payload))
             data.append(buffer.getvalue())
-        if self.error:
-            data.append(self.error.to_xml())
 
         return data
 
@@ -221,7 +203,7 @@ class OpenADR2Plugin(base_plugin):
         self.description = 'OpenADR 2.0 XMPP EiEvent Implementation'
         self.xmpp.add_handler("<iq type='set'><oadrDistributeEvent xmlns='%s' /></iq>"%event.OADR_XMLNS_A,
                               self._handle_iq)
-        self.msg_handler = self.config.get('msg_handler')
+        self.callback = self.config.get('callback')
 
     def _handle_iq(self, iq):
         logging.info('OpenADR2Plugin: recieved a valid IQ Stanza. -- from=%s, to=%s'%(iq.get('from'), iq.get('to')))
@@ -236,7 +218,7 @@ class OpenADR2Plugin(base_plugin):
             )
             
             # And pass it to the message handler
-            self.msg_handler(msg)
+            self.callback(msg)
         except Exception, e:
             logging.exception("OADR2 XMPP parse error: %s", e)
             raise XMPPError(text=e) 

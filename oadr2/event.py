@@ -2,6 +2,8 @@
 # --------
 # Requires the python libXML wrapper "lxml" to function properly
 
+__author__ = "Thom Nichols <tnichols@enernoc.com>, Ben Summerton <bsummerton@enernoc.com>"
+
 import uuid
 import logging
 
@@ -13,9 +15,6 @@ import schedule
 '''
 Code to manage eiEvents, parse schedules and current values.
 '''
-
-__author__ = "Thom Nichols <tnichols@enernoc.com>, Ben Summerton <bsummerton@enernoc.com>"
-
 
 # Stuff for the 2.0a spec of OpenADR
 OADR_XMLNS_A = 'http://openadr.org/oadr-2.0a/2012/07'

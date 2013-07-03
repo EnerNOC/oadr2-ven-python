@@ -20,19 +20,6 @@ OADR2_URI_PATH = 'OpenADR2/Simple/'
 
 CONTROL_LOOP_INTERVAL = 30  # update control state every X second
 
-
-__POLL_INSTANCE = None
-
-# Make sure that we only get once instance of the poll thingy
-def get_instance(**kwargs):
-    global __POLL_INSTANCE
-
-    if __POLL_INSTANCE is None:
-        __POLL_INSTANCE = OpenADR2(**kwargs)
-
-    return __POLL_INSTANCE
-    
-
 class OpenADR2(object):
     # vtn_base_uri
     # vtn_poll_interval
@@ -51,6 +38,7 @@ class OpenADR2(object):
     # _exit - A threading object via threading.Event()
 
     
+    #TODO: two different sub-dicts for VEN and VTN
     def __init__(self, event_config, vtn_base_uri=None, vtn_poll_interval=DEFAULT_VTN_POLL_INTERVAL, ven_id=None, ven_passwd=None,
                  ven_client_cert_key=None, ven_client_cert_pem=None, vtn_ca_certs=None, test_mode=False, start_thread=True):
         self.vtn_base_uri = vtn_base_uri
@@ -111,13 +99,6 @@ class OpenADR2(object):
     
     def _init_client(self, start_thread):
         handlers = []
-#        if self.ven_credentials[1]: # if we have a password
-#            logging.debug("--- Adding password handler: %s",(self.ven_credentials,))
-#            pwd_mgr = PreemptiveBasicAuthHandler()
-#            pwd_mgr.add_password( None, self.vtn_base_uri,
-#                    self.ven_credentials[0], 
-#                    self.ven_credentials[1] )
-#            handlers.append( pwd_mgr )
 
         if self.ven_client_cert_key:
             logging.debug("Adding HTTPS client cert key: %s, pem: %s", 
@@ -127,7 +108,7 @@ class OpenADR2(object):
                 self.ven_client_cert_pem,
                 self.vtn_ca_certs,
                 ssl_version = ssl.PROTOCOL_TLSv1,
-                ciphers = 'TLS_RSA_WITH_AES_256_CBC_SHA' ) )
+                ciphers = 'TLS_RSA_WITH_AES_256_CBC_SHA' ) ) #  TODO: chnage 'ciphers' to a constant at top of file; cipher list format (include link)
 
         # This is our HTTP client:
         self.http = urllib2.build_opener(*handlers)
@@ -140,15 +121,14 @@ class OpenADR2(object):
             self.poll_thread.start()
 
 
-    # HARDWARE
     def exit(self):
         self._control_loop_signal.set()     # notify the control loop to exit
         self.control_thread.join(2)
         if self.poll_thread is not None:
             self.poll_thread.join(2)        # they are daemons.
         self._exit.set()
-    
-    # HTTP
+   
+
     def poll_vtn_loop(self):
         '''
         The threading loop which polls the VTN on an interval 
@@ -170,7 +150,6 @@ class OpenADR2(object):
         logging.info(" +++++++++++++++ OADR2 polling thread has exited." )
 
 
-    # HTTP
     def query_vtn(self):
         if not self.vtn_base_uri:
             logging.warn("VTN base URI is invalid: %s", self.vtn_base_uri)
@@ -178,6 +157,7 @@ class OpenADR2(object):
 
         payload = self.event_handler.build_request_payload()
 
+        # TODO: capture uri in variable, reuse
         req = urllib2.Request(
                 self.vtn_base_uri + 'EiEvent',
                 etree.tostring(payload),
@@ -190,14 +170,15 @@ class OpenADR2(object):
         data = resp.read()
         resp.close()
         logging.debug("EiRequestEvent response: %s\n%s", resp.getcode(),data)
-#        if resp.headers.gettype() != CONTENT_TYPE:
+        if resp.headers.gettype() != CONTENT_TYPE:
+            logging.warn('Unexpected content type')# TODO
 #            raise Exception( "Unexpected content type '%s' from %s" % \
 #                    (resp.headers.gettype(), resp.url) )
 
         reply = None
         try:
             payload = etree.fromstring(data)
-            logging.debug('Return:\n%s\n----'%(etree.tostring(payload, pretty_print=True)))
+            logging.debug('Got Payload:\n%s\n----'%(etree.tostring(payload, pretty_print=True)))
             reply = self.event_handler.handle_payload(payload)
         except:
             logging.warn("error parsing response:\n%s",data)
@@ -208,7 +189,8 @@ class OpenADR2(object):
             self._control_loop_signal.set() # tell the control loop to update control
             self.send_reply(reply)          # And send it
 
-    # HTTP
+
+    # TODO: add extra parameter (URI)
     def send_reply(self, payload):
         request = urllib2.Request( 
             self.vtn_base_uri + "EiEvent",
@@ -220,7 +202,6 @@ class OpenADR2(object):
         logging.debug("EiEvent response: %s", resp.getcode())
 
 
-    # HARDWARE
     def control_event_loop(self):
         '''
         This is the threading loop to perform control based on current oadr events
@@ -252,7 +233,6 @@ class OpenADR2(object):
         logging.info("Control loop exiting.")
 
 
-    # HARDWARE
     def do_control(self,events):
         '''
         Called by `control_event_loop()` when event states should be updated.
@@ -309,7 +289,7 @@ class OpenADR2(object):
         
         self.toggle_relays(highest_signal_val)
 
-    # HARDWARE
+    
     def toggle_relays(self,signal_level):
         signal_level = float(signal_level)
         if signal_level == self.current_signal_level: return
@@ -322,7 +302,6 @@ class OpenADR2(object):
         self.current_signal_level = signal_level
 
 
-    # HARDWARE
     def get_current_relay_level(self):
         for i in xrange(len(self.event_levels),0,-1):
              val = self._control.do_control_point( 'control_get', self.event_levels[i-1] )
@@ -331,41 +310,11 @@ class OpenADR2(object):
         return 0
 
 
-    def is_module_active(self):
-        '''
-        heartbeat logic
-        '''
-        return self.poll_thread.is_alive() and self.control_thread.is_alive()
-
-
-class PreemptiveBasicAuthHandler(urllib2.BaseHandler):
-
-    def __init__(self, password_mgr=None):
-        if password_mgr is None:
-            password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        self.passwd = password_mgr
-        self.add_password = self.passwd.add_password
-
-    def http_request(self,req):
-        uri = req.get_full_url()
-        user, pw = self.passwd.find_user_password(None,uri)
-#        logging.debug('ADDING BASIC AUTH HEADER for uri (%s): %s:%s',uri,user,pw)
-        if pw is None: return req
-
-        raw = "%s:%s" % (user, pw)
-        auth = 'Basic %s' % base64.b64encode(raw).strip()
-#        if req.headers.get(self.auth_header, None) == auth:
-#            return None
-        req.add_unredirected_header('Authorization', auth)
-        return req
-
-
 # http://stackoverflow.com/questions/1875052/using-paired-certificates-with-urllib2
 class HTTPSClientAuthHandler(urllib2.HTTPSHandler):
     '''
     Allows sending a client certificate with the HTTPS connection.
-    This version also validates the peer (server) certificate since, well...
-    WTF IS THE POINT OF SSL IF YOU DON"T AUTHENTICATE THE PERSON YOU"RE TALKING TO!??!
+    This version also validates the peer (server) certificate.
     '''
     def __init__(self, key, cert, ca_certs, ssl_version=None, ciphers=None):
         urllib2.HTTPSHandler.__init__(self)
@@ -419,10 +368,9 @@ class HTTPSConnection(httplib.HTTPSConnection):
         self.sock = ssl.wrap_socket( sock, 
                 self.key_file, self.cert_file,
                 ca_certs = self.ca_certs,
-#                ciphers = self.ciphers,  # DOH!  This is Python 2.7-only!
+                ciphers = self.ciphers,  # NOTE: This is Python 2.7-only!
                 cert_reqs = ssl.CERT_REQUIRED if self.ca_certs else ssl.CERT_NONE,
                 ssl_version = self.ssl_version )
 
 
-service_class = OpenADR2
 

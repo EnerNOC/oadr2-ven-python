@@ -12,7 +12,7 @@ logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s  %(message)s" )
 
-from oadr2 import control, event, poll
+from oadr2 import poll
 
 BASE_URI = 'http://localhost:8080/oadr2-vtn'
 
@@ -22,9 +22,6 @@ TRUST_CERTS = None #'./oadr_trust_certs.pem'
 
 def main():
     logging.info('Testing HTTP Transmisssions')
-
-    # Make an instance of the Control Interface
-    controller = control.get_instance()
 
     config = {
         'vtn_poll_interval': 10,
@@ -39,7 +36,7 @@ def main():
         }
     }
      
-    poller = poll.get_instance(**config)
+    poller = poll.OpenADR2(**config)
 
     # Some sort of loop thingy here
     print('Running...')
