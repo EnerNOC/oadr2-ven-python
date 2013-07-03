@@ -99,8 +99,6 @@ class OpenADR2(poll.OpenADR2):
     # Handle a message
     # msg - A type of OADR2Message
     def _handle_payload_signal(self,msg):
-#        print('HEY!')
-#        print('We\'ve recieved a signal')
         if msg.type != 'OADR2':
             return
 
@@ -216,11 +214,6 @@ class OpenADR2Plugin(base_plugin):
     '''
     OpenADR 2.0 XMPP handler
     '''
-
-    # Class construtor, used to set a message handler
-    # msg_handler - where we want to pipe a message to
-#    def __init__(self, msg_handler):
-#        self.msg_handler = msg_handler
 
     # Called when initialize the plugin, not the same as __init__
     def plugin_init(self):
