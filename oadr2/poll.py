@@ -38,7 +38,6 @@ class OpenADR2(object):
     ven_client_cert_pem
     vtn_ca_certs 
     test_mode -- Boolean value if we are in test mode or not
-    control_thread
     poll_thread
     control_thread -- threading.Thread() object w/ name of 'oadr2.control'
     event_controller -- A control.EventController object.

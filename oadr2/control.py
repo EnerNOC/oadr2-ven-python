@@ -30,11 +30,24 @@ class EventController(object):
 
     Member Variables:
     --------
-    event_handler - The EventHandler instance
+    event_handler -- The EventHandler instance
+    current_signal_level -- current signal level of a realy/point
+    control_loop_interval -- How often to run the control loop
+    event_levels -- A variable that contains the current event levels
+    _control_loop_signal -- threading.Event() object
+    _control -- A ControlInterface instance
+    _exit -- A threading.Thread() object
     '''
 
 
     def __init__(self, event_handler, control_loop_interval=CONTROL_LOOP_INTERVAL):
+        '''
+        Initialize the Event Controller
+
+        event_handler -- An instance of event.EventHandler
+        control_loop_interval -- How often to run the control loop
+        '''
+
         # Set the control interface
         self._control = ControlInterface()
 
@@ -50,8 +63,6 @@ class EventController(object):
 
         global event_levels
         self.event_levels = event_levels
-
-
 
 
     def control_event_loop(self):
