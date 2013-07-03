@@ -1,4 +1,6 @@
-__author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com' 
+# Contains the EventController and ControlInterface classes
+
+__author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com>'
 
 import logging
 import time
