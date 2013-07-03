@@ -83,9 +83,6 @@ class OpenADR2(object):
         self.ven_client_cert_pem = ven_client_cert_pem
         self.vtn_ca_certs = vtn_ca_certs
       
-        # Hardware stuff
-        self.event_levels = control.event_levels
-
         self.test_mode = bool(test_mode)
 
         # Add an exit thread for the module

@@ -5,7 +5,7 @@ __author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com>'
 import logging
 import time
 import threading
-from oadr2 import schedule
+from oadr2 import event, schedule
 
 CONTROL_LOOP_INTERVAL = 30           # update control state every X second
 
@@ -47,6 +47,9 @@ class EventController(object):
 
         self._control_loop_signal = threading.Event()
         self.control_loop_interval = control_loop_interval
+
+        global event_levels
+        self.event_levels = event_levels
 
 
 
