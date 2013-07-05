@@ -8,11 +8,12 @@ __author__ = 'Thom Nichols <tnichols@enernoc.com>, Benjamin N. Summerton <bsumme
 import threading, logging
 from cStringIO import StringIO
 
-# TODO: make this clearer
-import lxml
-from lxml import etree
-import xml.etree.cElementTree
-from xml.etree.cElementTree import XML  # TODO: make sure we use cElementTree
+# NOTE: As stated in header, we are using two different XML libraries.
+#       The python standard XML library is needed because of SleekXMPP
+#       Yet we try to use the "lxml," module as much as we can.
+from lxml import etree as lxml_etree
+from xml.etree import cElementTree as std_ElementTree
+from xml.etree.cElementTree import XML as std_XML
 
 import sleekxmpp
 from sleekxmpp.stanza.iq import Iq
@@ -89,14 +90,14 @@ class OpenADR2(poll.OpenADR2):
         try:
             logging.info('Signal (message) handler received a payload, processing...')
             response = self.event_handler.handle_payload( msg.payload )
-            logging.info('Response Payload:\n%s\n----\n'%etree.tostring(response, pretty_print=True))
+            logging.info('Response Payload:\n%s\n----\n'%lxml_etree.tostring(response, pretty_print=True))
             self.send_reply( response, msg.from_ )
         except Exception, ex:
             logging.exception("Error processing OADR2 log request: %s", ex)
 
     
     # Make and OADR2 Message and sends it to someone (if they are online)
-    # payload - The body of the IQ stanza, i.e. the OpenADR xml stuff (etree.Element object)
+    # payload - The body of the IQ stanza, i.e. the OpenADR xml stuff (lxml.etree.Element object)
     # to - The JID of whom the messge will go to
     def send_reply( self, payload, to ):
         # Make the message
@@ -114,7 +115,7 @@ class OpenADR2(poll.OpenADR2):
 
         xml_items = []
         for i in iq.to_xml():
-            xml_items.append(XML(i))
+            xml_items.append(std_XML(i))
 
         # TODO: test passing payload to set_payload; pass directly-ish
         reply.set_payload(xml_items)
@@ -186,7 +187,7 @@ class OADR2Message(object):
         data = []
         buffer = StringIO()
         if self.payload is not None: 
-            buffer.write(etree.tostring(self.payload))
+            buffer.write(lxml_etree.tostring(self.payload))
             data.append(buffer.getvalue())
 
         return data
@@ -210,7 +211,7 @@ class OpenADR2Plugin(base_plugin):
         logging.info('OpenADR2Plugin: recieved a valid IQ Stanza. -- from=%s, to=%s'%(iq.get('from'), iq.get('to')))
         try:
             # Convert a "Standard Python Library XML object," to one from lxml
-            payload_element = lxml.etree.XML(xml.etree.ElementTree.tostring(iq[0]))
+            payload_element = lxml_etree.XML(std_ElementTree.tostring(iq[0]))
             msg = OADR2Message(
                 iq_type = iq.get('type'),
                 id_ = iq.get('id'), 
