@@ -19,20 +19,25 @@ CLIENT_CERT_KEY_PATH = None #'./ven_key.pem'
 CLIENT_CERT_PATH = None #'./ven_cert.pem'
 TRUST_CERTS = None #'./oadr_trust_certs.pem'
 
+# Constants relating to VEN and VTN settings
+VEN_ID = 'ven_py'
+VTN_IDS = 'vtn_1,vtn_2,vtn_3,TH_VTN,vtn_rsa'
+VTN_POLL_INTERVAL = 10
+
 
 def main():
     logging.info('Testing HTTP Transmisssions')
 
     config = {
-        'vtn_poll_interval': 10,
-        'ven_id':  'ven_py',
+        'vtn_poll_interval': VTN_POLL_INTERVAL,
+        'ven_id':  VEN_ID,
         'vtn_base_uri': BASE_URI,
         'ven_client_cert_key': CLIENT_CERT_KEY_PATH,
         'ven_client_cert_pem': CLIENT_CERT_PATH,
         'vtn_ca_certs': TRUST_CERTS,
         'event_config': {
-            'ven_id': 'ven_py',
-            'vtn_ids': 'vtn_1,vtn_2,vtn_3,TH_VTN,vtn_rsa',
+            'ven_id': VEN_ID,
+            'vtn_ids': VTN_IDS,
         }
     }
      
