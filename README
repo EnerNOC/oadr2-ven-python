@@ -33,7 +33,7 @@ Structure:
 
 How-To:
 =======
-    Make sure that the python version you are using is 2.7; this applicationw as
+    Make sure that the python version you are using is 2.7; this application as
     developed using 2.7.2.
 
     Before using, it is recommended that you have an application called
@@ -45,9 +45,9 @@ How-To:
         $ deactivate
 
     The application depends on three third-party python packages:
-        lxml        -> Python "libXML," wrapper
-        sleekxmpp   -> Package for writing XMPP clients 
-        wsgreif     -> Package for Web Server Gateway Interface (WSGI)
+        lxml       ->  Python "libXML," wrapper
+        sleekxmpp  ->  Package for writing XMPP clients 
+        wsgreif    ->  Package for Web Server Gateway Interface (WSGI)
 
     To see the exact versions, check the file ./requirements.txt.
 
@@ -63,7 +63,7 @@ How-To:
         $ python xmpp_runner.py
 
     To end a script at any time, you can send a interrupt signal via ^C or
-    Ctrl-C.
+    Ctrl-C (in its terminal window).
 
     Inside of ./poll_runner.py and ./xmpp_runner.py there are configuration
     options for each script.  Make sure to alter these to your needs before
@@ -124,4 +124,7 @@ Final:
 ======
     
     Thank you for your interest in the application.  Have fun and enjoy.
+
+----------------
+
 
