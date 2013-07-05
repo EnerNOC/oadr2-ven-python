@@ -152,33 +152,69 @@ class OpenADR2(poll.OpenADR2):
         iq_reply = Iq(self.xmpp_client, sto=to, stype='set')
         iq_reply.set_payload(std_XML(lxml_etree.tostring(payload))) # Change the lxml object to a standard Python XML object
         self.xmpp_client.send(iq_reply)
-        
-    # Our poll_vtn_loop.
-    # Overloading the one in the base class
+       
+
     def poll_vtn_loop(self):
+        '''
+        This is just here as a reminder that in XMPP mode, we should not be polling the VTN
+        '''
+
         logging.warn("An OADR 2.0 XMPP client should not be using the server" )
         logging.warn("it should be waiting for XMPP IQs to be pushed!" )
 
 
-    # Shutdown the client
     def exit(self):
+        '''
+        Shutdown the module and client.
+        '''
+
         # Shutdown the xmpp client
         logging.info('Shutting down the XMPP Client...')
-        self.xmpp_client.send_presence(pstatus='unavailable')
-        self.xmpp_client.disconnect()
+
+        if self.xmpp_client.state.current_state() == 'connected':
+            self.xmpp_client.send_presence(pstatus='unavailable')
+            self.xmpp_client.disconnect()
+
         self.xmpp_client.stop.set()
         self.xmpp_client = None
         logging.info('XMPP Client shutdown.')
 
         poll.OpenADR2.exit(self)        # Stop the parent class as well
 
+
+
 class OADR2Message(object):
-    '''Message for OADR2 payload'''
+    '''
+    Message for OADR2 payload.
+
+    Member Variables:
+    --------
+    payload -- An XML payload
+    id -- An ID from the IQ stanza
+    from -- Whom it is from
+    stanza_type -- What type of stanza was it
+    iq_type -- What type of IQ was it (typically 'set' or 'result')
+    oadr_profile_level -- What version of OpenADR 2.0 we are using (either 2.0a or 2.0b)
+    ns_map -- The namespaces for the corresponding oadr_profile_level
+    '''
 
     def __init__(self, payload=None, 
             id_=None, stanza_type='iq', iq_type='result', 
             from_=None, to=None, 
             oadr_profile_level=event.OADR_PROFILE_20A):
+        '''
+        Initizlise the message
+
+        payload -- What data we want to send (an lxml object)
+        id_ -- ID of the stanza
+        stanza_type -- What type of stanza (should be 'iq')
+        iq_type -- What type of IQ
+        from_ -- JID of who sent it
+        to -- Whom it should go to
+        oadr_profile_level -- What gersion of OpenADR 2.0 we should be using.
+                              Should come from the event module, either
+                              event.OADR_PROFILE_20A, or event.OADR_PROFILE_20B
+        '''
 
         self.payload = payload
         self.id = id_
@@ -198,18 +234,60 @@ class OADR2Message(object):
 
 
     def get_events(self):
+        '''
+        Get the events from a payload.
+
+        Returns: All of the events as lxml objects
+        '''
+
         return self.payload.findall("%{(oadr)s}oadrEvent/{%(ei)s}eiEvent"%self.ns_map)
 
-    def get_status(self,event):
+
+    def get_status(self, event):
+        '''
+        Get the status of an event from the payload.
+
+        event -- event we are looking for.
+        
+        Returns: The status of the event as an lxml object
+        '''
+
         return event.findtext("{%(ei)s}eventDescriptor/{%(ei)s}eventStatus"%self.ns_map)
 
-    def get_evt_id(self,event):
+
+    def get_evt_id(self, event):
+        '''
+        Get's the ID of an event.
+
+        event -- Event we are looking at.
+
+        Returns: An lxml object.
+        '''
+
         return event.findtext("{%(ei)s}eventDescriptor/{%(ei)s}eventID"%self.ns_map)
 
-    def get_mod_num(self,event):
+
+    def get_mod_num(self, event):
+        '''
+        Get's the modification number of an event.
+
+        event -- Event we are looking at.
+
+        Returns: An lxml object.
+        '''
+
         return event.findtext("{%(ei)s}eventDescriptor/{%(ei)s}modificationNumber"%self.ns_map)
 
-    def get_current_signal_level(self,event):
+
+    def get_current_signal_level(self, event):
+        '''
+        Get's the current signal levels of an event.
+
+        event -- Event we are looking at.
+
+        REturns: An lxml object.
+        '''
+
         return event.findtext(('{%(ei)s}eiEventSignals/{%(ei)s}eiEventSignal/' + \
                 '{%(ei)s}currentValue/{%(ei)s}payloadFloat/{%(ei)s}value')%self.ns_map)
 
@@ -225,22 +303,40 @@ class OADR2Message(object):
         return data
 
 
-# NOTE: This plugin only works in the space of OpenADR 2.0a, but it shouldn't be to hard to have it work with 2.0b as well
+
 class OpenADR2Plugin(base_plugin):
     '''
-    OpenADR 2.0 XMPP handler
+    OpenADR 2.0 XMPP handler plugin
+
+    Member Variables:
+    --------
+    All from SleekXMPP's "base_plugin" class
+    callback -- What function do we want to handle our messages
     '''
+
 
     # Called when initialize the plugin, not the same as __init__
     def plugin_init(self):
+        '''
+        Initialize the plugin
+        '''
+
         self.xep = 'OADR2'
         self.description = 'OpenADR 2.0 XMPP EiEvent Implementation'
         self.xmpp.add_handler("<iq type='set'><oadrDistributeEvent xmlns='%s' /></iq>"%event.OADR_XMLNS_A,
                               self._handle_iq)
         self.callback = self.config.get('callback')
 
+
     def _handle_iq(self, iq):
-        logging.info('OpenADR2Plugin: recieved a valid IQ Stanza. -- from=%s, to=%s'%(iq.get('from'), iq.get('to')))
+        '''
+        Handle an IQ stanza with a payload containing an "oadrDistributeEvent"
+        tag.  This will pass an OADR2MEssage to 'self.callback'.
+
+        iq -- A SleekXMPP Iq object.
+        '''
+
+        logging.info('OpenADR2Plugin: recieved a valid IQ Stanza.  [from=%s, to=%s]'%(iq.get('from'), iq.get('to')))
         try:
             # Convert a "Standard Python Library XML object," to one from lxml
             payload_element = lxml_etree.XML(std_ElementTree.tostring(iq[0]))
