@@ -22,24 +22,36 @@ from sleekxmpp.exceptions import XMPPError
 
 import event, poll
 
+
+
 class OpenADR2(poll.OpenADR2):
-    # Memeber variables
-    # --------
-    # Everything from poll.OpenADR2 class
-    # xmpp_client - a sleekxmpp.ClientXMPP object, which will intercept the OpenADR2 stuff for us
-    # _message_signal_match - an event listener for matching signals
-    # user - JID
-    # password - Password for accompanying JID
-    # http_certs - 
-    # server_addr - Address of the XMPP Server
-    # server_port - Port we should connect to
+    '''
+    xmpp.OpenADR2 is the XMPP equivalent of poll.OpenADR2.  It will wait for an
+    oadrDistributeEvent IQ stanza from the XMPP server and then generate a
+    response IQ and send it to the server.
 
+    Memeber variables
+    --------
+    <<Everything from poll.OpenADR2 class>>
+    xmpp_client - a sleekxmpp.ClientXMPP object, which will intercept the OpenADR2 stuff for us
+    user - JID of user for the VEN
+    password - Password for accompanying JID
+    server_addr - Address of the XMPP Server
+    server_port - Port we should connect to
+    '''
 
-    # Initilize what will do XMPP magic for us
-    # **poll_config - A dictionary of Keyord arguemnts for the base class (poll.OpenADR2)
-    # user - JID of whom we want to login to as on the XMPP Server
-    # password - Password for corresponding JID
     def __init__(self, poll_config, user, password, server_addr='localhost', server_port=5222):
+        '''
+        Initilize what will do XMPP magic for us
+
+        **poll_config -- A dictionary of Keyord arguemnts for the base class (poll.OpenADR2)
+        user -- JID of whom we want to login to as on the XMPP Server
+        password - Password for corresponding JID
+        server_addr -- Address of where the XMPP server is located
+        server_port -- Port that the XMPP server is listening on
+        '''
+
+        # Make sure we set these variables before calling the parent class' constructor
         self.xmpp_client = None
         self.user = user
         self.password = password
@@ -48,9 +60,16 @@ class OpenADR2(poll.OpenADR2):
 
         poll.OpenADR2.__init__(self, **poll_config)
 
-    # Setup/Start the client.
-    # start_thread - To start the thread or to not
+
     def _init_client(self, start_thread):
+        '''
+        Setup/Start the client.  The base class has a function of the same name,
+        which is also called in its constructor.
+
+        start_thread -- Right now this variable is unused, but is here so it
+                        not conflict with its parent's function declaration.
+        '''
+
         # Setup the XMPP Client that we are going to be using
         self.xmpp_client = sleekxmpp.ClientXMPP(self.user, self.password)
         self.xmpp_client.add_event_handler('session_start', self.xmpp_session_start)
@@ -67,59 +86,72 @@ class OpenADR2(poll.OpenADR2):
 
         # Setup system information disco
         self.xmpp_client['xep_0030'].add_identity(category='system', itype='version', name='OpenADR2 Python VEN')
-        
+       
+        # Connect and thread the client
         self.xmpp_client.connect((self.server_addr, self.server_port))
         self.xmpp_client.process(threaded=True)
 
-    # 'session_start' event handler for our XMPP Client
-    # event - An event.
+
     def xmpp_session_start(self, event):
+        '''
+        'session_start' event handler for our XMPP Client.  Will just send our
+        presence.
+
+        event -- An empty dictionary.  Parameter is just here because of
+                 SleekXMPP requirements.
+        '''
+
+        logging.info('XMPP session has started.')
         self.xmpp_client.sendPresence()
 
-    # 'message' event handler for our XMPP Client
-    # NOTE: should never really receive one
-    # msg - The Message.
+
     def xmpp_message(self, msg):
+        '''
+        'message' event handler for our XMPP Client.
+        NOTE: OpenADR 2.0 XMPP does not use Message stanzas at all, so we should
+        never receive one, but the handler is here to print it out just in case.
+
+        msg -- The Message.
+        '''
+
         logging.info(msg)
 
-    # Handle a message
-    # msg - A type of OADR2Message
-    # TODO: NO signals!
-    def _handle_payload_signal(self,msg):
+        
+    #    TODO: NO signals!
+    def _handle_payload_signal(self, msg):
+        '''
+        Handle a "payload message."
+
+        msg - A type of OADR2Message
+        '''
+
         # Try to generate a response payload and send it back
         try:
             logging.info('Signal (message) handler received a payload, processing...')
-            response = self.event_handler.handle_payload( msg.payload )
+            response = self.event_handler.handle_payload(msg.payload)
             logging.info('Response Payload:\n%s\n----\n'%lxml_etree.tostring(response, pretty_print=True))
             self.send_reply( response, msg.from_ )
         except Exception, ex:
             logging.exception("Error processing OADR2 log request: %s", ex)
 
     
-    # Make and OADR2 Message and sends it to someone (if they are online)
-    # payload - The body of the IQ stanza, i.e. the OpenADR xml stuff (lxml.etree.Element object)
-    # to - The JID of whom the messge will go to
-    def send_reply( self, payload, to ):
-        # Make the message
-        iq = OADR2Message( #TODO: chnage name
-            payload = payload,
-            iq_type = 'set'
-        )
+    def send_reply(self, payload, to):
+        '''
+        Make and OADR2 Message and sends it to someone (if they are online)
+
+        payload - The body of the IQ stanza, i.e. the OpenADR xml stuff (lxml.etree.Element object)
+        to - The JID of whom the messge will go to
+        '''
 
         # And send it if we are connected
         if self.xmpp_client.state.current_state() != 'connected':
             logging.error('Not connected, cannot send response')
             return
 
-        reply = Iq(self.xmpp_client, sto=to, stype=iq.iq_type)
-
-        xml_items = []
-        for i in iq.to_xml():
-            xml_items.append(std_XML(i))
-
-        # TODO: test passing payload to set_payload; pass directly-ish
-        reply.set_payload(xml_items)
-        self.xmpp_client.send(reply)
+        # Build the IQ reply and send it
+        iq_reply = Iq(self.xmpp_client, sto=to, stype='set')
+        iq_reply.set_payload(std_XML(lxml_etree.tostring(payload))) # Change the lxml object to a standard Python XML object
+        self.xmpp_client.send(iq_reply)
         
     # Our poll_vtn_loop.
     # Overloading the one in the base class
