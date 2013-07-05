@@ -1,3 +1,4 @@
+# This file is used to run the XMPP module and test XMPP transmissions
 __author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com>'
 
 # Be sure that we are running this in the root folder
@@ -10,17 +11,14 @@ logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s  %(message)s" )
 
-from oadr2 import control, xmpp
+from oadr2 import xmpp
 
+# Constants
 BASE_URI = 'http://localhost:8080/oadr2-vtn'
 
 
 def main():
-    logging.info('Testing HTTP Transmissions')
-
-    # Setup an instance of the Control Interface
-    controller = control.get_instance()
-
+    logging.info('Testing XMPP Transmissions')
 
     config = {
         'user': 'ven_py@localhost/python',
@@ -39,8 +37,7 @@ def main():
         }
     }
      
-    xmpper = xmpp.get_instance(**config)
-
+    xmpper = xmpp.OpenADR2(**config)
 
     # Some sort of loop thingy here
     _exit = threading.Event()

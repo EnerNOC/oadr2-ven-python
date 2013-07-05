@@ -14,7 +14,7 @@ logging.basicConfig(
 
 from oadr2 import poll
 
-BASE_URI = 'http://localhost:8080/oadr2-vtn'
+BASE_URI = 'http://localhost:8080/oadr2-vtn-groovy'
 
 CLIENT_CERT_KEY_PATH = None #'./ven_key.pem'
 CLIENT_CERT_PATH = None #'./ven_cert.pem'

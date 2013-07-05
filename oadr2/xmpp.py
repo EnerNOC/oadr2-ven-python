@@ -1,25 +1,26 @@
-# For receiving and sending XMPP data
+# Classes for sending/receiving OpenADR 2.0 messages via XMPP
+# --------
+# Requires the python libXML wrapper "lxml" to function properly
+#   Please not that the standard python xml library is needed as well
 
 __author__ = 'Thom Nichols <tnichols@enernoc.com>, Benjamin N. Summerton <bsummerton@enernoc.com>'
 
 import threading, logging
 from cStringIO import StringIO
-from xml.sax.saxutils import escape as escape_xml
+
+# TODO: make this clearer
 import lxml
 from lxml import etree
-
-import event, poll
-
-import xml.etree.ElementTree
-from xml.etree.cElementTree import XML  # TODO: make sure we use CElementTree
+import xml.etree.cElementTree
+from xml.etree.cElementTree import XML  # TODO: make sure we use cElementTree
 
 import sleekxmpp
 from sleekxmpp.stanza.iq import Iq
 from sleekxmpp.plugins.base import base_plugin
 from sleekxmpp.exceptions import XMPPError
 
+import event, poll
 
-# Handler class/service for the XMPP stuff
 class OpenADR2(poll.OpenADR2):
     # Memeber variables
     # --------
