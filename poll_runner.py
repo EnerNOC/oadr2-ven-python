@@ -1,24 +1,24 @@
-# A file or something to test the poll.py module for OpenADR 2.0ab
+# A file to run the Poll module's OpenADR2 class (HTTP)
+
 __author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com'
 
 # Make sure to run this from the root directory
 import sys, os
 sys.path.insert(0, os.getcwd())
 
-import threading
-
-import logging
+import threading, logging
 logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s  %(message)s" )
 
 from oadr2 import poll
 
-BASE_URI = 'http://localhost:8080/oadr2-vtn-groovy'
-
+# Some constants that we might need
+BASE_URI = 'http://localhost:8080/oadr2-vtn'
 CLIENT_CERT_KEY_PATH = None #'./ven_key.pem'
 CLIENT_CERT_PATH = None #'./ven_cert.pem'
 TRUST_CERTS = None #'./oadr_trust_certs.pem'
+
 
 def main():
     logging.info('Testing HTTP Transmisssions')

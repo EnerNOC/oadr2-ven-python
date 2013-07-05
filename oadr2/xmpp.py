@@ -74,15 +74,10 @@ class OpenADR2(poll.OpenADR2):
         self.xmpp_client = sleekxmpp.ClientXMPP(self.user, self.password)
         self.xmpp_client.add_event_handler('session_start', self.xmpp_session_start)
         self.xmpp_client.add_event_handler('message', self.xmpp_message)
-        # TODO: double check XEPs
-        self.xmpp_client.register_plugin('xep_0004')
         self.xmpp_client.register_plugin('xep_0030')
-        self.xmpp_client.register_plugin('xep_0060')
-        self.xmpp_client.register_plugin('xep_0050')
         self.xmpp_client.register_plugin('xep_0199', pconfig={'keepalive': True, 'frequency': 240})
-        self.xmpp_client.register_plugin('xep_0202')
         self.xmpp_client.register_plugin('OpenADR2Plugin', module='oadr2.xmpp',
-                                         pconfig={'callback': self._handle_payload_signal})
+                                         pconfig={'callback': self._handle_payload_callback})
 
         # Setup system information disco
         self.xmpp_client['xep_0030'].add_identity(category='system', itype='version', name='OpenADR2 Python VEN')
@@ -117,8 +112,7 @@ class OpenADR2(poll.OpenADR2):
         logging.info(msg)
 
         
-    #    TODO: NO signals!
-    def _handle_payload_signal(self, msg):
+    def _handle_payload_callback(self, msg):
         '''
         Handle a "payload message."
 

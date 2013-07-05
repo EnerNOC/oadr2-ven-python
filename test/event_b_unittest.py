@@ -4,19 +4,19 @@
 # NOTE: If you see a function name beginning w/ "tst," that means that I just disabled the test case for
 #       when I want to run a single unit test
 
+# NOTE: Make sure to run this file from the root directory of the project
 import sys,os
-from mockito import *
-import unittest
-from lxml import etree
-
 sys.path.insert( 0, os.getcwd() )
 xml_dir = os.path.join( os.path.dirname(__file__), 'xml_files')
 
+from lxml import etree
 from oadr2 import event
+import unittest
+
+# Some constants
 SCHEMA_DIR = os.path.join(xml_dir, '2.0b_schema/')
 SAMPLE_DIR = os.path.join(xml_dir, '2.0b_spec/')
 VEN_ID = 'ven_py'
-
 STATUS_CODES = [200, 403, 405]
 
 class EventHandlerTest(unittest.TestCase):
@@ -36,6 +36,7 @@ class EventHandlerTest(unittest.TestCase):
         # Make things a little nicer for us to see
         print('')
         print(40 * '=')
+
 
     def tearDown(self):
         pass
@@ -95,6 +96,7 @@ class EventHandlerTest(unittest.TestCase):
 
         print('build_error_response() OK')
 
+
     def test_build_created_payload(self):
         print('in test_build_created_payload()')
         
@@ -141,6 +143,7 @@ class EventHandlerTest(unittest.TestCase):
 
         print('build_created_payload() OK')
 
+
     def test_handle_payload(self):
         print('in test_handle_payload()')
 
@@ -182,6 +185,7 @@ class EventHandlerTest(unittest.TestCase):
 
         print('handle_payload() OK')
 
+
     # Tests Batch A from the sample XML files; used for events w/ changing mod numbers
     def test_batch_a(self):
         print("in test_batch_a()")
@@ -222,6 +226,7 @@ class EventHandlerTest(unittest.TestCase):
             i += 1
 
         print('test_batch_a() OK')
+
 
     # Test Batch B from the sample XML files; send an event, send a 2nd with a higher mod num,
     # then send one with a lower mod.
@@ -326,6 +331,7 @@ class EventHandlerTest(unittest.TestCase):
 
 
         print('test_batch_d() OK')
+
 
     def test_20b_1(self):
         print('In test_20b_1()')

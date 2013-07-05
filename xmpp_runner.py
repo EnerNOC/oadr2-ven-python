@@ -1,12 +1,12 @@
 # This file is used to run the XMPP module and test XMPP transmissions
+
 __author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com>'
 
 # Be sure that we are running this in the root folder
 import sys, os
 sys.path.insert(0, os.getcwd())
 
-import threading
-import logging
+import threading, logging
 logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s  %(message)s" )
