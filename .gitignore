@@ -3,3 +3,7 @@
 *.db
 *.pyo
 *.swp
+bin/
+lib/
+include/
+.Python
