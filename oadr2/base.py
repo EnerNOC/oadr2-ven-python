@@ -3,8 +3,7 @@
 __author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com>'
 
 import logging, threading
-import event, schedule, control
-
+import event, control
 
 
 class BaseHandler(object):
@@ -35,6 +34,8 @@ class BaseHandler(object):
         self._exit = threading.Event()
         self._exit.clear()
 
+        logging.info('Created base handler.')
+
 
     def exit(self):
         '''
@@ -43,5 +44,7 @@ class BaseHandler(object):
 
         self.event_controller.exit()    # Stop the event controller
         self._exit.set()
+
+        logging.info('Shutdown base handler.')
 
 

@@ -20,11 +20,11 @@ from sleekxmpp.stanza.iq import Iq
 from sleekxmpp.plugins.base import base_plugin
 from sleekxmpp.exceptions import XMPPError
 
-import event, poll
+import base, event
 
 
 
-class OpenADR2(poll.OpenADR2):
+class OpenADR2(base.BaseHandler):
     '''
     xmpp.OpenADR2 is the XMPP equivalent of poll.OpenADR2.  It will wait for an
     oadrDistributeEvent IQ stanza from the XMPP server and then generate a
@@ -32,7 +32,7 @@ class OpenADR2(poll.OpenADR2):
 
     Memeber variables
     --------
-    <<Everything from poll.OpenADR2 class>>
+    (Everything from base.BaseHandler class)
     xmpp_client - a sleekxmpp.ClientXMPP object, which will intercept the OpenADR2 stuff for us
     user - JID of user for the VEN
     password - Password for accompanying JID
@@ -40,7 +40,7 @@ class OpenADR2(poll.OpenADR2):
     server_port - Port we should connect to
     '''
 
-    def __init__(self, poll_config, user, password, server_addr='localhost', server_port=5222):
+    def __init__(self, event_config, user, password, server_addr='localhost', server_port=5222):
         '''
         Initilize what will do XMPP magic for us
 
@@ -51,6 +51,8 @@ class OpenADR2(poll.OpenADR2):
         server_port -- Port that the XMPP server is listening on
         '''
 
+        base.BaseHandler.__init__(self, event_config)
+
         # Make sure we set these variables before calling the parent class' constructor
         self.xmpp_client = None
         self.user = user
@@ -58,7 +60,7 @@ class OpenADR2(poll.OpenADR2):
         self.server_addr = server_addr
         self.server_port = int(server_port)
 
-        poll.OpenADR2.__init__(self, **poll_config)
+        self._init_client(start_thread=True)
 
 
     def _init_client(self, start_thread):
@@ -146,15 +148,6 @@ class OpenADR2(poll.OpenADR2):
         iq_reply = Iq(self.xmpp_client, sto=to, stype='set')
         iq_reply.set_payload(std_XML(lxml_etree.tostring(payload))) # Change the lxml object to a standard Python XML object
         self.xmpp_client.send(iq_reply)
-       
-
-    def poll_vtn_loop(self):
-        '''
-        This is just here as a reminder that in XMPP mode, we should not be polling the VTN
-        '''
-
-        logging.warn("An OADR 2.0 XMPP client should not be using the server" )
-        logging.warn("it should be waiting for XMPP IQs to be pushed!" )
 
 
     def exit(self):
@@ -173,7 +166,7 @@ class OpenADR2(poll.OpenADR2):
         self.xmpp_client = None
         logging.info('XMPP Client shutdown.')
 
-        poll.OpenADR2.exit(self)        # Stop the parent class as well
+        base.BaseHandler.exit(self)     # Stop the parent threads
 
 
 

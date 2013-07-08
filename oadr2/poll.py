@@ -7,7 +7,7 @@ import urllib2
 import httplib
 import ssl, socket
 from lxml import etree
-import base, event, schedule, control
+import base, schedule
 
 # HTTP parameters:
 CONTENT_TYPE = 'application/xml'

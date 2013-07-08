@@ -18,6 +18,8 @@ VEN_ID = 'ven_py'
 VTN_IDS = 'vtn_1,vtn_2,vtn_3,TH_VTN,vtn_rsa' 
 USER_JID = 'ven_py@localhost/python'
 USER_PASS = 'asdf'
+SERVER_ADDR = 'localhost'
+SERVER_PORT = 5222
 
 
 def main():
@@ -26,17 +28,11 @@ def main():
     config = {
         'user': USER_JID,
         'password': USER_PASS,
-        'poll_config': {
-            'vtn_poll_interval': 0,
+        'server_addr': SERVER_ADDR,
+        'server_port': SERVER_PORT,
+        'event_config': {
             'ven_id': VEN_ID,
-            'vtn_base_uri': '',
-            'ven_client_cert_key': None,
-            'ven_client_cert_pem': None,
-            'vtn_ca_certs': None,
-            'event_config': {
-                'ven_id': VEN_ID,
-                'vtn_ids': VTN_IDS
-            }
+            'vtn_ids': VTN_IDS
         }
     }
      
