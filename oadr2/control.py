@@ -10,17 +10,10 @@ from oadr2 import event, schedule
 CONTROL_LOOP_INTERVAL = 30           # update control state every X second
 
 event_levels = ( 
-    'relay_1A',    # 1+
-    'relay_2A',    # 2+
+    'relay_1',    # 1+
+    'relay_2',    # 2+
 )
 
-# A sort of mock register/memory for the feedbacks and event levels
-register = {
-    'pulse_1': 0,       # (val, timestamp)
-    'pulse_2': 0,       # (val, timestamp)
-    'relay_1A': 0,
-    'relay_2A': 0,
-}
 
 
 # Used by poll.OpenADR2 to handle events
@@ -170,7 +163,7 @@ class EventController(object):
 
         for i in range(len(self.event_levels)):
             control_val = 1 if i < signal_level else 0
-            self._control.do_control_point('control_set', self.event_levels[i], control_val)
+            self._control.control_set(self.event_levels[i], control_val)
 
         self.current_signal_level = signal_level
 
@@ -184,8 +177,8 @@ class EventController(object):
         '''
 
         for i in xrange(len(self.event_levels),0,-1):
-             val = self._control.do_control_point('control_get', self.event_levels[i-1])
-             if val:
+            val = self._control.control_get(self.event_levels[i - 1])
+            if val:
                 return i
 
         return 0
@@ -205,37 +198,48 @@ class ControlInterface(object):
         '''
         Initialize the class.
         '''
-        self._register = register.copy() # Use our own register for the control mock
+        # A sort of mock register/memory for the feedbacks and event levels
+        self._register = {
+            'pulse_1': 0,       # (val, timestamp)
+            'pulse_2': 0,
+            'relay_1': 0,
+            'relay_2': 0,
+        }
 
-
-    def do_control_point(self, op, point_id, value=None):
+    def control_get(self, point_id):
         '''
-        Do an operation on a control point (e.g. get/set)
+        Get the value of a control point.
 
-        op -- Either 'control_get' to get a value, or 'control_set' to set it.
-        point_id -- What point to operate on
-        value -- When setting, this is what to set the point to
+        point_id -- The point we want to poll (a string ID)
 
-        Returns: on a Get, it will return the value of the point requested
+        Returns: A tuple of (VALUE, TIMESTAMP) on sucess, or a tuple of 
+                 (None, None) on failure.
         '''
 
-        if op == 'control_get':
-            # Perform an 'Control Get' operation
-            if point_id in self._register:
-                return self._register[point_id], time.time()
-            else:
-                # We shoudn't be here
-                logging.warn('In ControlInterface, tried to get point_id "%s," which doesn\'t exist in the register.'%(point_id))
-                return None, None
-        elif op == 'control_set':
-            # Set something in the "register,"
-            if (point_id in self._register) and (value is not None):
-                self._register[point_id] = value
-            else:
-                if value is None:
-                    logging.warn('In ControInterface, tried to set a None type value for register w/ point_id=%s.'%(point_id))
-                    return None
-                if point_id not in self._register:
-                    logging.warn('In ControlInterface, tried to set pont_id "%s," which doesn\'t exist in the register.'%(point_id))
-                    return None
+        # Perform an 'Control Get' operation
+        if point_id in self._register:
+            return self._register[point_id], time.time()
+        else:
+            # We shoudn't be here
+            logging.warn('In ControlInterface, tried to get point_id "%s," which doesn\'t exist in the register.'%(point_id))
+            return None, None
+
+
+    def control_set(self, point_id, value=None):
+        '''
+        Set a control point.
+
+        point_id -- The point we want to set (a string ID)
+        value -- What we want to set it to.
+        '''
+
+        # Set something in the "register,"
+        if (point_id in self._register) and (value is not None):
+            self._register[point_id] = value
+        else:
+            if value is None:
+                logging.warn('In ControInterface, tried to set a None type value for register w/ point_id=%s.'%(point_id))
+            if point_id not in self._register:
+                logging.warn('In ControlInterface, tried to set pont_id "%s," which doesn\'t exist in the register.'%(point_id))
+
 
