@@ -7,7 +7,7 @@ import urllib2
 import httplib
 import ssl, socket
 from lxml import etree
-import event, schedule, control
+import base, event, schedule, control
 
 # HTTP parameters:
 CONTENT_TYPE = 'application/xml'
@@ -24,30 +24,27 @@ HTTPS_CIPHERS = 'TLS_RSA_WITH_AES_256_CBC_SHA'
 
 
 
-class OpenADR2(object):
+class OpenADR2(base.BaseHandler):
     '''
     poll.OpenADR2 is the class for sending requests and responses for OpenADR
     2.0 events over HTTP.
 
     Member Variables:
     --------
+    (Everything from base.BaseHandler)
     vtn_base_uri
     vtn_poll_interval
-    event_handler -- The single instance of the event_handler, gotten via event.get_instace()
     ven_client_cert_key
     ven_client_cert_pem
     vtn_ca_certs 
-    test_mode -- Boolean value if we are in test mode or not
     poll_thread
-    event_controller -- A control.EventController object.
-    _exit -- A threading object via threading.Event()
     '''
    
 
     def __init__(self, event_config, ven_id, vtn_base_uri,
                  ven_client_cert_key=None, ven_client_cert_pem=None,
                  vtn_poll_interval=DEFAULT_VTN_POLL_INTERVAL, vtn_ca_certs=None,
-                 test_mode=False, start_thread=True):
+                 start_thread=True):
         '''
         Sets up the class and intializes the HTTP client.
 
@@ -59,12 +56,14 @@ class OpenADR2(object):
         vtn_base_uri -- Base URI of the VTN's location
         vtn_poll_interval -- How often we should poll the VTN
         vtn_ca_certs -- CA Certs for the VTN
-        test_mode -- If we are in Test Mode or not
-        start_thread -- start the thread for the control loop or not?
+        start_thread -- start the thread for the poll loop or not?
         '''
 
-        self.vtn_base_uri = vtn_base_uri
+        # Call the parent's methods
+        base.BaseHandler.__init__(self, event_config)
 
+        # Get the VTN's base uri set
+        self.vtn_base_uri = vtn_base_uri
         if self.vtn_base_uri: # append path
             join_char = '/' if self.vtn_base_uri[-1] != '/' else ''
             self.vtn_base_uri = join_char.join((self.vtn_base_uri, OADR2_URI_PATH))
@@ -74,28 +73,16 @@ class OpenADR2(object):
             logging.warn('Invalid poll interval: %s', self.vtn_poll_interval)
             self.vtn_poll_interval = DEFAULT_VTN_POLL_INTERVAL
 
-        self.event_handler = event.get_instance(**event_config)     # Get the instance of the EventHandler
-
         # Security & Authentication related
         self.ven_client_cert_key = ven_client_cert_key
         self.ven_client_cert_pem = ven_client_cert_pem
         self.vtn_ca_certs = vtn_ca_certs
       
-        self.test_mode = bool(test_mode)
-
-        # Add an exit thread for the module
-        self._exit = threading.Event()
-        self._exit.clear()
-
-        # Get the Event controller working
-        self.event_controller = control.EventController(self.event_handler)
-
         self.poll_thread = None
         start_thread = bool(start_thread)
         self._init_client(start_thread)
 
         logging.info( " +++++++++++++++ OADR2 module started ++++++++++++++ " )
-        logging.info( ' test mode: %s', self.test_mode )
 
     
     def _init_client(self, start_thread):
@@ -134,11 +121,10 @@ class OpenADR2(object):
         Shutdown the HTTP client, join the running threads and exit.
         '''
 
-        self.event_controller.exit()        # Shutdown the event controller
-
         if self.poll_thread is not None:
             self.poll_thread.join(2)        # they are daemons.
-        self._exit.set()
+
+        base.BaseHandler.exit(self)         # Parent class
    
 
     def poll_vtn_loop(self):
