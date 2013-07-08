@@ -27,17 +27,19 @@ class EventController(object):
     current_signal_level -- current signal level of a realy/point
     control_loop_interval -- How often to run the control loop
     event_levels -- A variable that contains the current event levels
+    control_thread -- threading.Thread() object w/ name of 'oadr2.control'
     _control_loop_signal -- threading.Event() object
     _control -- A ControlInterface instance
     _exit -- A threading.Thread() object
     '''
 
 
-    def __init__(self, event_handler, control_loop_interval=CONTROL_LOOP_INTERVAL):
+    def __init__(self, event_handler, start_thread=True, control_loop_interval=CONTROL_LOOP_INTERVAL):
         '''
         Initialize the Event Controller
 
         event_handler -- An instance of event.EventHandler
+        start_thread -- Start the control thread
         control_loop_interval -- How often to run the control loop
         '''
 
@@ -56,6 +58,17 @@ class EventController(object):
 
         global event_levels
         self.event_levels = event_levels
+
+        # The control thread
+        self.control_thread = None
+
+        if start_thread:
+            self.control_thread = threading.Thread(
+                    name='oadr2.control',
+                    target=self.control_event_loop)
+            self.control_thread.daemon = True
+            self.control_thread.start()
+
 
 
     def control_event_loop(self):
@@ -182,6 +195,15 @@ class EventController(object):
                 return i
 
         return 0
+
+    def exit(self):
+        '''
+        Shutdown the threads for the module
+        '''
+
+        self._control_loop_signal.set()     # notify the control loop to exit
+        self.control_thread.join(2)
+        self._exit.set()
 
 
 class ControlInterface(object):

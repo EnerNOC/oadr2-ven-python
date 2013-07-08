@@ -39,15 +39,14 @@ class OpenADR2(object):
     vtn_ca_certs 
     test_mode -- Boolean value if we are in test mode or not
     poll_thread
-    control_thread -- threading.Thread() object w/ name of 'oadr2.control'
     event_controller -- A control.EventController object.
     _exit -- A threading object via threading.Event()
     '''
    
 
-    def __init__(self, event_config,
-                 ven_id, ven_client_cert_key=None, ven_client_cert_pem=None,
-                 vtn_base_uri=None, vtn_poll_interval=DEFAULT_VTN_POLL_INTERVAL, vtn_ca_certs=None,
+    def __init__(self, event_config, ven_id, vtn_base_uri,
+                 ven_client_cert_key=None, ven_client_cert_pem=None,
+                 vtn_poll_interval=DEFAULT_VTN_POLL_INTERVAL, vtn_ca_certs=None,
                  test_mode=False, start_thread=True):
         '''
         Sets up the class and intializes the HTTP client.
@@ -91,17 +90,9 @@ class OpenADR2(object):
         # Get the Event controller working
         self.event_controller = control.EventController(self.event_handler)
 
-        self.control_thread = None
         self.poll_thread = None
         start_thread = bool(start_thread)
         self._init_client(start_thread)
-
-        if start_thread:
-            self.control_thread = threading.Thread(
-                    name='oadr2.control',
-                    target=self.event_controller.control_event_loop)
-            self.control_thread.daemon = True
-            self.control_thread.start()
 
         logging.info( " +++++++++++++++ OADR2 module started ++++++++++++++ " )
         logging.info( ' test mode: %s', self.test_mode )
@@ -143,11 +134,10 @@ class OpenADR2(object):
         Shutdown the HTTP client, join the running threads and exit.
         '''
 
-        self.event_controller._control_loop_signal.set()     # notify the control loop to exit
-        self.control_thread.join(2)
+        self.event_controller.exit()        # Shutdown the event controller
+
         if self.poll_thread is not None:
             self.poll_thread.join(2)        # they are daemons.
-        self.event_controller._exit.set()
         self._exit.set()
    
 
@@ -211,7 +201,7 @@ class OpenADR2(object):
         if reply is not None:
             logging.debug('Reply:\n%s\n----'%(etree.tostring(reply, pretty_print=True)))
             self.event_controller._control_loop_signal.set()    # tell the control loop to update control
-            self.send_reply(reply, event_uri)  # And send it
+            self.send_reply(reply, event_uri)                   # And send it
 
 
     def send_reply(self, payload, uri):
