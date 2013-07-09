@@ -2,6 +2,7 @@
 # --------
 # Requires the python libXML wrapper "lxml"
 
+import os
 import threading, logging
 import urllib2
 import httplib
@@ -298,9 +299,8 @@ class HTTPSConnection(httplib.HTTPSConnection):
             self.sock = sock
             self._tunnel()
 
-        if self.ca_certs:
-            with open(self.ca_certs,'r') as test:
-                logging.info('+++++++++++++++ CA CERTS: %s ++++++++++++++', self.ca_certs)
+        if self.ca_certs and not os.path.isfile( self.ca_certs ):
+                logging.warn("CA certs file does not exist: %s", self.ca_certs)
             
         self.sock = ssl.wrap_socket( sock, 
                 self.key_file, self.cert_file,
