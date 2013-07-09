@@ -272,8 +272,6 @@ class EventHandler(object):
                 )
         ) 
 
-        logging.debug( "Request payload:\n%s", 
-                etree.tostring(payload,pretty_print=True) )
         return payload
 
 

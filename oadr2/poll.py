@@ -164,14 +164,14 @@ class OpenADR2(base.BaseHandler):
 
         # Make the request
         req = urllib2.Request(event_uri, etree.tostring(payload), dict(DEFAULT_HEADERS))
-        logging.debug('Request:\n%s\n----'%(etree.tostring(payload, pretty_print=True)))
-        logging.debug("Request to: %s", req.get_full_url())
+        logging.debug( 'Request to: %s\n%s\n----', req.get_full_url(), 
+                etree.tostring(payload, pretty_print=True) )
 
         # Get the response
         resp = self.http.open(req, None, REQUEST_TIMEOUT)
         data = resp.read()
         resp.close()
-        logging.debug("EiRequestEvent response: %s\n%s", resp.getcode(), data)
+#        logging.debug("EiRequestEvent response: %s\n%s", resp.getcode(), data)
 
         if resp.headers.gettype() != CONTENT_TYPE:
             logging.warn('Unexpected content type')
