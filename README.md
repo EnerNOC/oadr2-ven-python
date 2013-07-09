@@ -59,7 +59,7 @@ Inside of `./poll_runner.py` and `./xmpp_runner.py` there are configuration
 options for each script.  Make sure to alter these to your needs before running
 anything.
 
-###### For `./poll_runner.py`: ######
+##### For `./poll_runner.py`: #####
  * Change `BASE_URI` to point to the address (and port) of your VTN's base URL.
    Make sure to include the "http://" in the string.  There are also extra
    constants where you can specify paramters for authentication certificates.
@@ -68,7 +68,7 @@ anything.
  * Change `VTN_POLL_INTERVAL` how often the VEN will poll the VTN with an
    oadrRequestEvent payload.  Time is in seconds.
 
-###### For `./xmpp_runner.py`: ######
+##### For `./xmpp_runner.py`: #####
  * Change `VEN_ID` to an identifier that your VTN knows about.
  * Change `VTN_IDS` to a CSV string of your VTN(s) identifiers.
  * Change `USER_JID` to the JabberID you want to VEN to use when connecting to
