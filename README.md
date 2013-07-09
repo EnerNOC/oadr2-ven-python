@@ -40,15 +40,15 @@ that this same file can be used by the "Python Package Index," program (a.k.a
     $ pip install -r requirements.txt
 
 There are four main executable files in this app, they are:
- * ./poll_runner.py
- * ./xmpp_runner.py
- * ./test/event_unittest.py
- * ./test/event_b_unittest.py
+ * `./poll_runner.py`
+ * `./xmpp_runner.py`
+ * `./test/event_unittest.py`
+ * `./test/event_b_unittest.py`
 
-The ./poll_runner.py script is used to test OpenADR2 over HTTP, where as
-./xmpp_runner.py is for XMPP.  To run either of the two scripts, just use
+The `./poll_runner.py` script is used to test OpenADR2 over HTTP, where as
+`./xmpp_runner.py` is for XMPP.  To run either of the two scripts, just use
 "python," on one of the scripts:
-    $ python xmpp_runner.py
+>    $ python xmpp_runner.py
 
 To end a script at any time, you can send a interrupt signal via ^C or Ctrl-C
 (in its terminal window).
@@ -57,7 +57,7 @@ Inside of ./poll_runner.py and ./xmpp_runner.py there are configuration options
 for each script.  Make sure to alter these to your needs before running
 anything.
 
-### For ./poll_runner.py: ###
+##### For `./poll_runner.py`: #####
  * Change "BASE_URI," to point to the address (and port) of your VTN's base URL.
    Make sure to include the "http://" in the string.  There are also extra
    constants where you can specify paramters for authentication certificates.
