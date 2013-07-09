@@ -1,82 +1,70 @@
 # EnerNOC's Open Source Python VEN #
 
-License:
-========
-    Please see the file ./LICENSE for information regarding licensing of this
-    application.
+## License: ##
+Please see the file ./LICENSE for information regarding licensing of this
+application.
 
-----------------
 
-Credits:
-========
-    This software was created by EnerNOC's Advanced Technology team, the authors
-    are:
-        Thom Nichols   <tnichols@enernoc.com>
-        Ben Summerton  <bsummerton@enernoc.com>
+## Credits: ##
+This software was created by EnerNOC's Advanced Technology team, the authors
+are:
+ * Thom Nichols   <tnichols@enernoc.com>
+ * Ben Summerton  <bsummerton@enernoc.com>
 
-----------------
 
-Structure:
-==========
-    The main files for this app are in the ./oadr2 directory, they are:
-        ./oadr2/schedule.py -> Datestring interpretation
-        ./oadr2/event.py    -> Event Handler module
-        ./oadr2/control.py  -> Controller module (Hardware related)
-        ./oadr2/poll.py     -> HTTP handler of OpenADR events
-        ./oadr2/xmpp.py     -> XMPP handler of OpenADR events
+## Structure: ##
+The main files for this app are in the ./oadr2 directory, they are:
+ * ./oadr2/schedule.py -> Datestring interpretation
+ * ./oadr2/event.py    -> Event Handler module
+ * ./oadr2/control.py  -> Controller module (Hardware related)
+ * ./oadr2/poll.py     -> HTTP handler of OpenADR events
+ * ./oadr2/xmpp.py     -> XMPP handler of OpenADR events
 
-    Files in the ./test directory relate to unit tests.  And the folders ./bin,
-    ./lib, ./include are for Python's "virtualenv."
 
-----------------
+## How-To: ##
+Make sure that the python version you are using is 2.7; this application as
+developed using 2.7.2.
 
-How-To:
-=======
-    Make sure that the python version you are using is 2.7; this application as
-    developed using 2.7.2.
+Before using, it is recommended that you have an application called
+"virtualenv," installed.  Use an installation of this program is beyond the
+scope of this file.
 
-    Before using, it is recommended that you have an application called
-    "virtualenv," installed.  To start the virtual python environment, in the
-    root directory type:
-        $ source ./bin/activate
+The application depends on three third-party python packages:
+ * lxml       ->  Python "libXML," wrapper
+ * sleekxmpp  ->  Package for writing XMPP clients 
+ * wsgreif    ->  Package for Web Server Gateway Interface (WSGI)
 
-    To shutdown virtualenv type:
-        $ deactivate
+To see the exact versions, check the file ./requirements.txt.  Please also note
+that this same file can be used by the "Python Package Index," program (a.k.a
+"pip,") to install the required packages.  To do so, use the command:
+    $ pip install -r requirements.txt
 
-    The application depends on three third-party python packages:
-        lxml       ->  Python "libXML," wrapper
-        sleekxmpp  ->  Package for writing XMPP clients 
-        wsgreif    ->  Package for Web Server Gateway Interface (WSGI)
+There are four main executable files in this app, they are:
+ * ./poll_runner.py
+ * ./xmpp_runner.py
+ * ./test/event_unittest.py
+ * ./test/event_b_unittest.py
 
-    To see the exact versions, check the file ./requirements.txt.
+The ./poll_runner.py script is used to test OpenADR2 over HTTP, where as
+./xmpp_runner.py is for XMPP.  To run either of the two scripts, just use
+"python," on one of the scripts:
+    $ python xmpp_runner.py
 
-    There are four main executable files in this app, they are:
-        ./poll_runner.py
-        ./xmpp_runner.py
-        ./test/event_unittest.py
-        ./test/event_b_unittest.py
+To end a script at any time, you can send a interrupt signal via ^C or Ctrl-C
+(in its terminal window).
 
-    The poll_runner.py script is used to test OpenADR2 over HTTP, where as
-    xmpp_runner.py is for XMPP.  To run either of the two scripts, just use
-    "python," on one of the scripts
-        $ python xmpp_runner.py
+Inside of ./poll_runner.py and ./xmpp_runner.py there are configuration options
+for each script.  Make sure to alter these to your needs before running
+anything.
 
-    To end a script at any time, you can send a interrupt signal via ^C or
-    Ctrl-C (in its terminal window).
-
-    Inside of ./poll_runner.py and ./xmpp_runner.py there are configuration
-    options for each script.  Make sure to alter these to your needs before
-    running anything.
-
-    For ./poll_runner.py:
-      + Change "BASE_URI," to point to the address (and port) of your VTN's base
-        URL.  Make sure to include the "http://" in the string.  There are also
-        extra constants where you can specify paramters for authentication
-        certificates.
-      + Change "VEN_ID," to an identifier that your VTN knows about.
-      + Change "VTN_IDS," to a CSV string of your VTN(s) identifiers.
-      + Change "VTN_POLL_INTERVAL," how often the VEN will poll the VTN with an
-        oadrRequestEvent payload.  Time is in seconds.
+### For ./poll_runner.py: ###
+ * Change "BASE_URI," to point to the address (and port) of your VTN's base URL.
+   Make sure to include the "http://" in the string.  There are also extra
+   constants where you can specify paramters for authentication certificates.
+ * Change "VEN_ID," to an identifier that your VTN knows about.
+ * Change "VTN_IDS," to a CSV string of your VTN(s) identifiers.
+ * Change "VTN_POLL_INTERVAL," how often the VEN will poll the VTN with an
+   oadrRequestEvent payload.  Time is in seconds.
 
     For ./xmpp_runner.py:
       + Change "VEN_ID," to an identifier that your VTN knows about.
@@ -117,13 +105,9 @@ How-To:
     Please make sure run all of the scripts in the root directory of this
     application.
 
-----------------
 
 Final:
-======
     
     Thank you for your interest in the application.  Have fun and enjoy.
-
-----------------
 
 
