@@ -14,11 +14,11 @@ are:
 
 ## Structure: ##
 The main files for this app are in the ./oadr2 directory, they are:
- * `./oadr2/schedule.py` -> Datestring interpretation
- * `./oadr2/event.py`    -> Event Handler module
- * `./oadr2/control.py`  -> Controller module (Hardware related)
- * `./oadr2/poll.py`     -> HTTP handler of OpenADR events
- * `./oadr2/xmpp.py`     -> XMPP handler of OpenADR events
+ * `./oadr2/schedule.py`    *Datestring interpretation*
+ * `./oadr2/event.py`       *Event Handler modulea*
+ * `./oadr2/control.py`     *Controller module (Hardware related)*
+ * `./oadr2/poll.py`        *HTTP handler of OpenADR events*
+ * `./oadr2/xmpp.py`        *XMPP handler of OpenADR events*
 
 
 ## How-To: ##
@@ -27,14 +27,14 @@ developed using 2.7.2.
 
 Before using, it is recommended that you have an application called
 `virtualenv` installed.  Use an installation of this program is beyond the
-scope of this file.
+scope of this project.
 
 The application depends on three third-party python packages:
- * `lxml`       ->  Python "libXML," wrapper
- * `sleekxmpp`  ->  Package for writing XMPP clients 
- * `wsgreif`    ->  Package for Web Server Gateway Interface (WSGI)
+ * `lxml`             *Python "libXML," wrapper*
+ * `sleekxmpp`        *Package for writing XMPP clients*
+ * `wsgreif`          *Package for Web Server Gateway Interface (WSGI)*
 
-To see the exact versions, check the file `./requirements.txt.`  Please also
+To see the exact versions, check the file `./requirements.txt`.  Please also
 note that this same file can be used by the "Python Package Index," program
 (a.k.a `pip`) to install the required packages.  To do so, use the command:
 
@@ -59,7 +59,7 @@ Inside of `./poll_runner.py` and `./xmpp_runner.py` there are configuration
 options for each script.  Make sure to alter these to your needs before running
 anything.
 
-##### For `./poll_runner.py`: #####
+###### For `./poll_runner.py`: ######
  * Change `BASE_URI` to point to the address (and port) of your VTN's base URL.
    Make sure to include the "http://" in the string.  There are also extra
    constants where you can specify paramters for authentication certificates.
@@ -68,7 +68,7 @@ anything.
  * Change `VTN_POLL_INTERVAL` how often the VEN will poll the VTN with an
    oadrRequestEvent payload.  Time is in seconds.
 
-##### For `./xmpp_runner.py`: #####
+###### For `./xmpp_runner.py`: ######
  * Change `VEN_ID` to an identifier that your VTN knows about.
  * Change `VTN_IDS` to a CSV string of your VTN(s) identifiers.
  * Change `USER_JID` to the JabberID you want to VEN to use when connecting to
@@ -79,7 +79,7 @@ anything.
 If you do not have an XMPP server, a suggested one to download and run is
 "OpenFire."  It was the type of server that this code was tested on.  Also, if
 you do not have a VTN that can connect to an XMPP server, it is suggested that
-you use a program called "Psi," to deliver oadrDistributeEvent payloads via its
+you use a program called `Psi` to deliver oadrDistributeEvent payloads via its
 "XML Console."
 
 Please note that while this software should be able to handle 2.0b (OpenADR)
@@ -92,7 +92,7 @@ The simpliest way is as follows:
     
  * In `./oadr2/xmpp.py` in the `__init__()` function of the `OADR2Message`
    class, change the default value of `oadr_profile_level` to:
-   `event.OADR2_PROFILE_20B` (don't forget that `event.` in front).
+   `event.OADR2_PROFILE_20B` *(don't forget that `event.` in front)*.
 
 The other two executable scripts are in the ./test directory, they are for unit
 testing purposes.  Mainly to test the `EventHandler` class.
