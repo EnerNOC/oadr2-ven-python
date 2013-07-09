@@ -1,5 +1,4 @@
-EnerNOC's Open Source Python VEN
---------------------------------
+# EnerNOC's Open Source Python VEN #
 
 License:
 ========
