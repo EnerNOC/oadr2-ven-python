@@ -2,9 +2,9 @@
 
 
 This package is a implementation of the [OpenADR](http://openadr.org) 2.0a VEN 
-(end node) client.  It *should* pass most of the 2.0a certification test suite.  
-The package includes both an HTTP poll client and XMPP client (even though 2.0a 
-doesn't technically support XMPP.)  
+(end node) client.  It *should* pass most of the 2.0a certification test 
+suite.  The package includes both an HTTP poll client and XMPP client (even 
+though 2.0a doesn't technically support XMPP.)  
 
 There is also some code to handle 2.0b payloads for the Event service, although
 this is not complete.
@@ -72,7 +72,7 @@ anything.
  * Change `VEN_ID` to an identifier that your VTN knows about.
  * Change `VTN_IDS` to a CSV string of your VTN(s) identifiers.
  * Change `VTN_POLL_INTERVAL` how often the VEN will poll the VTN with an
-   oadrRequestEvent payload.  Time is in seconds.
+   `oadrRequestEvent` payload.  Time is in seconds.
 
 ##### For `./xmpp_runner.py`: #####
 
