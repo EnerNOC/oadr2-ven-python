@@ -8,7 +8,8 @@ import uuid
 import logging
 from lxml import etree
 from lxml.builder import ElementMaker, E
-import schedule
+
+import schedule, database
 
 
 # Stuff for the 2.0a spec of OpenADR
@@ -28,17 +29,18 @@ NS_A = {
 }
 
 # Stuff for the 2.0b spec of OpenADR
-OADR_XMLNS_B          = "http://openadr.org/oadr-2.0b/2012/07"
-DSIG11_XMLNS_B        = "http://www.w3.org/2009/xmldsig11#"
-DS_XMLNS_B            = "http://www.w3.org/2000/09/xmldsig#"
-CLM5ISO42173A_XMLNS_B = "urn:un:unece:uncefact:codelist:standard:5:ISO42173A:2010-04-07"
-SCALE_XMLNS_B         = "http://docs.oasis-open.org/ns/emix/2011/06/siscale"
-POWER_XMLNS_B         = "http://docs.oasis-open.org/ns/emix/2011/06/power"
-GB_XMLNS_B            = "http://naesb.org/espi"
-ATOM_XMLNS_B          = "http://www.w3.org/2005/Atom"
-CCTS_XMLNS_B          = "urn:un:unece:uncefact:documentation:standard:CoreComponentsTechnicalSpecification:2"
-GML_XMLNS_B           = "http://www.opengis.net/gml/3.2"
-GMLSF_XMLNS_B         = "http://www.opengis.net/gmlsf/2.0"
+OADR_XMLNS_B          = 'http://openadr.org/oadr-2.0b/2012/07'
+DSIG11_XMLNS_B        = 'http://www.w3.org/2009/xmldsig11#'
+DS_XMLNS_B            = 'http://www.w3.org/2000/09/xmldsig#'
+CLM5ISO42173A_XMLNS_B = 'urn:un:unece:uncefact:codelist:standard:5:ISO42173A:2010-04-07'
+SCALE_XMLNS_B         = 'http://docs.oasis-open.org/ns/emix/2011/06/siscale'
+POWER_XMLNS_B         = 'http://docs.oasis-open.org/ns/emix/2011/06/power'
+GB_XMLNS_B            = 'http://naesb.org/espi'
+ATOM_XMLNS_B          = 'http://www.w3.org/2005/Atom'
+CCTS_XMLNS_B          = 'urn:un:unece:uncefact:documentation:standard:CoreComponentsTechnicalSpecification:2'
+GML_XMLNS_B           = 'http://www.opengis.net/gml/3.2'
+GMLSF_XMLNS_B         = 'http://www.opengis.net/gmlsf/2.0'
+XSI_XMLNS_B           = 'http://www.w3.org/2001/XMLSchema-instance'
 NS_B = {    # If you see an 2.0a variable used here, that means that the namespace is the same
     'oadr'   : OADR_XMLNS_B,
     'pyld'   : PYLD_XMLNS_A,
@@ -55,7 +57,8 @@ NS_B = {    # If you see an 2.0a variable used here, that means that the namespa
     'atom'   : ATOM_XMLNS_B,
     'ccts'   : CCTS_XMLNS_B,
     'gml'    : GML_XMLNS_B,
-    'gmlsf'  : GMLSF_XMLNS_B
+    'gmlsf'  : GMLSF_XMLNS_B,
+    'xsi'    : XSI_XMLNS_B
 }
 
 # Other important constants that we need
@@ -93,7 +96,6 @@ class EventHandler(object):
     group_id -- ID of group that VEN belogns to
     resource_id -- ID of resource in VEN we want to manipulate
     party_id -- ID of the party we are party of
-    _events -- Dictionary of events; KEY=ei:eventID, VALUE=etree.Element
     '''
     
     def __init__(self, ven_id, vtn_ids=None, market_contexts=None,
@@ -137,7 +139,7 @@ class EventHandler(object):
             self.oadr_profile_level = OADR_PROFILE_20A     # Default/Safety, make it the 2.0a spec 
             self.ns_map = NS_A      
 
-        self._events = {}
+        self.db = database.DBHandler()
 
 
     def handle_payload(self, payload):
@@ -234,10 +236,13 @@ class EventHandler(object):
 
         # Find implicitly cancelled events and get rid of them
         remove_events = []
-        for e_id in self._events:
+        for evt in self.get_active_events():
+            e_id = get_event_id(evt, self.ns_map)
+
             if e_id not in all_events: 
                 logging.debug('Removing cancelled event %s', e_id)
                 remove_events.append(e_id)
+
         self.remove_events(remove_events)
 
         # If we have any in the replay_events list, build some payloads
@@ -277,7 +282,7 @@ class EventHandler(object):
         return payload
 
 
-    def build_created_payload(self,events):
+    def build_created_payload(self, events):
         '''
         Assemble an XML payload to send out for events marked "response
         required."
@@ -381,10 +386,14 @@ class EventHandler(object):
         '''
         Get an iterator of all the active events.
 
-        Return: An iterator containing the values of our _events dictionary
+        Return: An iterator containing lxml.etree.ElementTree EiEvent objects
         '''
-
-        return self._events.itervalues()
+        # Get the events, and convert their XML blobs to lxml objects
+        active = self.db.get_active_events()
+        for e_id in active.iterkeys():
+            active[e_id] = etree.XML(active[e_id])
+        
+        return active.itervalues()
 
 
     def update_all_events(self, event_dict):
@@ -395,11 +404,14 @@ class EventHandler(object):
                         Key: should be the Event ID
                         Value: should be the Event (lxml.etree.ElementTree)
         '''
-
-        self._events.clear()
+        # Format the event diciontary int a list of event records for the database
+        event_list = []
         for e_id in event_dict.iterkeys():
-            self._events[e_id] = event_dict[e_id]
+            mod_num = get_mod_number(event_dict[e_id], self.ns_map)
+            raw_xml = etree.tostring(event_dict[e_id])
+            event_list.append(('<NOT A VTN>', e_id, mod_num, raw_xml))
 
+        self.db.update_all_events(event_list)
 
     def update_event(self, e_id, event):
         '''
@@ -408,8 +420,12 @@ class EventHandler(object):
         e_id -- ID of the event we want to replace/add
         event -- the event we want to add in
         '''
+    def update_event(self, e_id, event):
+        self.db.update_event(e_id,
+                             get_mod_number(event, self.ns_map),
+                             etree.tostring(event),
+                             '<NOT A VTN>')
 
-        self._events[e_id]= event
 
     def get_event(self, e_id):
         '''
@@ -419,19 +435,22 @@ class EventHandler(object):
 
         Returns: The event we want, or None
         '''
+        evt = self.db.get_event(e_id)
 
-        return self._events.get(e_id,None)
+        # Only parse it if it isn't None
+        if evt is not None:
+            evt = etree.XML(evt)
+
+        return evt;
 
 
-    def remove_events(self,evt_id_list):
+    def remove_events(self, evt_id_list):
         '''
         Remove a list of events from our internal member dictionary
 
         event_id_list - List of Event IDs 
         '''
-
-        for e_id in evt_id_list:
-            del self._events[e_id]
+        self.db.remove_events(evt_id_list)
 
 
 
