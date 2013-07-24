@@ -232,7 +232,7 @@ class EventHandler(object):
                     set_active_period_start(evt, new_start, self.ns_map)
                 
                 # Add/update the event to our list
-                self.update_event(e_id,evt)
+                self.update_event(e_id, evt, vtnID)
 
         # Find implicitly cancelled events and get rid of them
         remove_events = []
@@ -396,35 +396,36 @@ class EventHandler(object):
         return active.itervalues()
 
 
-    def update_all_events(self, event_dict):
+    def update_all_events(self, event_dict, vtn_id):
         '''
         Clear out all of the current events and add/update some other ones in.
 
         event_dict -- Dictionary of events we want to add/update.
                         Key: should be the Event ID
                         Value: should be the Event (lxml.etree.ElementTree)
+        vtn_id -- ID of VTN these events are associated with.
         '''
         # Format the event diciontary int a list of event records for the database
         event_list = []
         for e_id in event_dict.iterkeys():
             mod_num = get_mod_number(event_dict[e_id], self.ns_map)
             raw_xml = etree.tostring(event_dict[e_id])
-            event_list.append(('<NOT A VTN>', e_id, mod_num, raw_xml))
+            event_list.append((vtn_id, e_id, mod_num, raw_xml))
 
         self.db.update_all_events(event_list)
 
-    def update_event(self, e_id, event):
+    def update_event(self, e_id, event, vtn_id):
         '''
         Sets an older event of e_id to the newer one, or just add a new one.
 
         e_id -- ID of the event we want to replace/add
         event -- the event we want to add in
+        vtn_id -- ID of VTN this event is associated with
         '''
-    def update_event(self, e_id, event):
         self.db.update_event(e_id,
                              get_mod_number(event, self.ns_map),
                              etree.tostring(event),
-                             '<NOT A VTN>')
+                             vtn_id)
 
 
     def get_event(self, e_id):
