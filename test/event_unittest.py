@@ -37,6 +37,7 @@ class EventHandlerTest(unittest.TestCase):
 
 
     def tearDown(self):
+        self.event_handler.update_all_events({})    # Clear out the database
         pass
 
 
