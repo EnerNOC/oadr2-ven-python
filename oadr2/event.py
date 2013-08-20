@@ -100,7 +100,8 @@ class EventHandler(object):
     
     def __init__(self, ven_id, vtn_ids=None, market_contexts=None,
                  group_id=None, resource_id=None, party_id=None,
-                 oadr_profile_level=OADR_PROFILE_20A):
+                 oadr_profile_level=OADR_PROFILE_20A,
+                 updated_event_callback=None):
         '''
         Class constructor
 
@@ -424,6 +425,12 @@ class EventHandler(object):
                              get_mod_number(event, self.ns_map),
                              etree.tostring(event),
                              vtn_id)
+        try:
+            if self.event_callback is not None:
+                self.event_callback(self, e_id, vtn_id)
+
+        except Exception as ex:
+            logging.warn("Error in event callback! %s", ex)
 
 
     def get_event(self, e_id):
