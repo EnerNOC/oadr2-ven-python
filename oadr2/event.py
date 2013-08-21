@@ -66,21 +66,6 @@ VALID_SIGNAL_TYPES = ('level','price','delta','setpoint')
 OADR_PROFILE_20A = '2.0a'
 OADR_PROFILE_20B = '2.0b'
 
-__EVENT_INSTANCE = None
-
-def get_instance(**kwargs):
-    '''
-    EventHandler should be treated as a singleton.  The first time that you call
-    this function, make sure to pass in a dictionary as keyworded arguements.
-    See "EventHandler," class for what you should pass in.
-    '''
-    global __EVENT_INSTANCE
-
-    if __EVENT_INSTANCE is None:
-        __EVENT_INSTANCE = EventHandler(**kwargs)
-
-    return __EVENT_INSTANCE
-
 
 class EventHandler(object):
     '''

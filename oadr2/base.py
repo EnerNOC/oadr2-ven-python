@@ -27,7 +27,7 @@ class BaseHandler(object):
         '''
 
         # Get an EventHandler and an EventController
-        self.event_handler = event.get_instance(**event_config)
+        self.event_handler = event.EventHandler(**event_config)
         self.event_controller = control.EventController(self.event_handler)
 
         # Add an exit thread for the module
