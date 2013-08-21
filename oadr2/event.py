@@ -101,7 +101,7 @@ class EventHandler(object):
     def __init__(self, ven_id, vtn_ids=None, market_contexts=None,
                  group_id=None, resource_id=None, party_id=None,
                  oadr_profile_level=OADR_PROFILE_20A,
-                 updated_event_callback=None):
+                 event_callback=None):
         '''
         Class constructor
 
@@ -129,6 +129,8 @@ class EventHandler(object):
         self.party_id = party_id
 
         self.ven_id = ven_id
+
+        self.event_callback = event_callback
 
         # the default profile is '2.0a'; do this to set the ns_map
         self.oadr_profile_level = oadr_profile_level
