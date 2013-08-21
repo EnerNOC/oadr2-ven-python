@@ -42,7 +42,7 @@ class OpenADR2(base.BaseHandler):
     '''
    
 
-    def __init__(self, event_config, ven_id, vtn_base_uri,
+    def __init__(self, event_config, vtn_base_uri,
                  ven_client_cert_key=None, ven_client_cert_pem=None,
                  vtn_poll_interval=DEFAULT_VTN_POLL_INTERVAL, vtn_ca_certs=None,
                  start_thread=True):
@@ -51,7 +51,6 @@ class OpenADR2(base.BaseHandler):
 
         event_config -- A dictionary containing key-word arugments for the
                         EventHandller
-        ven_id -- ID of the VEN
         ven_client_cert_key -- Certification Key for the HTTP Client
         ven_client_cert_pem -- PEM file/string for the HTTP Client
         vtn_base_uri -- Base URI of the VTN's location
