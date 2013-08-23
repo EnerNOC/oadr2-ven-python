@@ -106,11 +106,15 @@ def durations_to_dates(start,dur_list):
 
 
 def str_to_datetime(dt_str):
-    return datetime.datetime.strptime(dt_str,'%Y-%m-%dT%H:%M:%S.%fZ')
+    fmt = '%Y-%m-%dT%H:%M:%S.%fZ' if '.' in dt_str \
+            else '%Y-%m-%dT%H:%M:%SZ'
+    return datetime.datetime.strptime(dt_str,fmt)
 
 
-def dttm_to_str(dttm):
-    return dttm.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+def dttm_to_str(dttm, include_msec=True):
+    fmt = '%Y-%m-%dT%H:%M:%S.%fZ' if include_msec \
+            else '%Y-%m-%dT%H:%M:%SZ'
+    return dttm.strftime(fmt)
 
 
 def random_offset(dttm, start_before, start_after):
