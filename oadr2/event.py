@@ -97,6 +97,11 @@ class EventHandler(object):
         resource_id -- What resouce we are
         party_id -- Which party are we party of
         oadr_profile_level -- What version of OpenADR 2.0 we want to use
+        event_callback -- a function to call when events are updated and removed.
+           The callback should have the signature `cb(updated,removed)` where
+           each parameter will be passed a dict in the form `{event_id, event_etree}`
+           where `oadr:oadrEvent` is the root element.  You can use functions defined
+           in the `event` module to pick out individual values from each event.
         '''
 
         # 'vtn_ids' is a CSV string of 
@@ -203,6 +208,7 @@ class EventHandler(object):
                 reply_events.append((e_id,e_mod_num,requestID,opt,status))
 
             # We have a new event or an updated old one
+            updated_events={}
             if (old_event is None) or (e_mod_num > old_mod_num):
                 start_offset = get_start_before_after(evt, self.ns_map)
 
@@ -220,20 +226,29 @@ class EventHandler(object):
                     set_active_period_start(evt, new_start, self.ns_map)
                 
                 # Add/update the event to our list
+                updated_events[e_id] = evt
                 self.update_event(e_id, evt, vtnID)
 
         # Find implicitly cancelled events and get rid of them
-        remove_events = []
+        remove_events = {}
         for evt in self.get_active_events():
             e_id = get_event_id(evt, self.ns_map)
 
             if e_id not in all_events: 
                 logging.debug('Removing cancelled event %s', e_id)
-                remove_events.append(e_id)
+                remove_events[e_id] = self.get_event(e_id)
 
-        self.remove_events(remove_events)
+        # call the callback of updated & removed events.  
+        try:
+            if self.event_callback is not None:
+                self.event_callback(self, updated_events, remove_events )
 
-        # If we have any in the replay_events list, build some payloads
+        except Exception as ex:
+            logging.warn("Error in event callback! %s", ex)
+
+        self.remove_events(remove_events.keys())
+
+        # If we have any in the reply_events list, build some payloads
         logging.debug("Replying for events %r", reply_events)
         reply = None
         if reply_events:
@@ -400,6 +415,7 @@ class EventHandler(object):
 
         self.db.update_all_events(event_list)
 
+
     def update_event(self, e_id, event, vtn_id):
         '''
         Sets an older event of e_id to the newer one, or just add a new one.
@@ -412,12 +428,6 @@ class EventHandler(object):
                              get_mod_number(event, self.ns_map),
                              etree.tostring(event),
                              vtn_id)
-        try:
-            if self.event_callback is not None:
-                self.event_callback(self, e_id, vtn_id)
-
-        except Exception as ex:
-            logging.warn("Error in event callback! %s", ex)
 
 
     def get_event(self, e_id):
@@ -578,7 +588,7 @@ def set_active_period_start(evt,dttm, ns_map=NS_A):
 
 def get_start_before_after(evt, ns_map=NS_A):
     '''
-    Gets the "start before after," of an event
+    Gets the "start before" and "start after" tolerances of an event
 
     evt -- lxml.etree.Element object
     ns_map -- Dictionary of namesapces for OpenADR 2.0; default is the 2.0a spec
