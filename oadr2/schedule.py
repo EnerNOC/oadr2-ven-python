@@ -8,9 +8,8 @@ __author__ = 'Thom Nichols tnichols@enernoc.com'
 
 import re
 import datetime
-import sqlite3
 import random
-import logging
+#import logging
 
 DB_PATH = 'oadr2.db'
 
@@ -48,7 +47,7 @@ def choose_interval(start,interval_list,now=None):
 
     interval_start_list = durations_to_dates(
             start, interval_list )
-    logging.debug('All interval starts: %r', interval_start_list)
+#    logging.debug('All interval starts: %r', interval_start_list)
 
     current_interval_end = None
         
@@ -138,54 +137,4 @@ def random_offset(dttm, start_before, start_after):
         delta = datetime.timedelta(seconds=random_offset)
 
         return dttm - delta if start_before else dttm + delta
-
-
-def init_database( database_path ):
-    '''Create the required tables for a log database'''
-
-    if database_path is None or "":
-        raise ValueError( "Database path cannot be empty" )
-
-    # TODO synchronize?
-    conn = sqlite3.connect(database_path)
-    c= conn.cursor()
-    # verify if the table already exists:
-    c.execute("pragma table_info('event_schedule')")
-    if c.fetchone() is not None: return # table exists.
-
-    try:
-        # NOTE timestamps are SECONDS as a float, not milliseconds.
-        # see: http://wiki.python.org/moin/WorkingWithTime
-        c.executescript(
-              '''PRAGMA foreign_keys = ON;
-
-              create table event (
-                  id integer primary key,
-                  vtn_id varchar not null,
-                  event_id varchar not null,
-                  modification_num int not null default 0 );
-              create unique index idx_event_vtn_id on event (
-                  vtn_id, event_id );
-                  
-              create table event_schedule (
-                  id integer primary key,
-                  event_id integer not null
-                    references event (id) on delete cascade,
-                  interval_time float not null,
-                  duration float not null,
-                  signal_type varchar not null,
-                  signal_level varchar not null
-                  next_record_ts float default 0.0 );
-              create index idx_event_schedule_dttm on event_schedule (
-                  interval_time asc );
-              ''')
-
-        conn.commit()
-        logging.info( "Created tables for database %s", database_path )
-    except:
-        logging.exception( "Error creating tables for database %s", database_path )
-        conn.rollback()
-    finally:
-        c.close()
-        conn.close()
 
