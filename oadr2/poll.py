@@ -178,15 +178,17 @@ class OpenADR2(base.BaseHandler):
         reply = None
         try:
             payload = etree.fromstring(data)
-            logging.debug('Got Payload:\n%s\n----'%(etree.tostring(payload, pretty_print=True)))
+            logging.debug('Got Payload:\n%s\n----', etree.tostring(payload, pretty_print=True))
             reply = self.event_handler.handle_payload(payload)
+
         except:
             logging.warn("error parsing response:\n%s",data)
 
         # If we have a generated reply:
         if reply is not None:
-            logging.debug('Reply:\n%s\n----'%(etree.tostring(reply, pretty_print=True)))
-            self.event_controller._control_loop_signal.set()    # tell the control loop to update control
+            logging.debug('Reply to: %s\n%s\n----', 
+                    event_uri, 
+                    etree.tostring(reply, pretty_print=True) )
             self.send_reply(reply, event_uri)                   # And send it
 
 
