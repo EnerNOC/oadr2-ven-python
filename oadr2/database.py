@@ -81,39 +81,27 @@ class DBHandler(object):
     # Returns: An empty dictionary or a dictionary following the pattern:
     #           dict['event_id'] = '<xml>blob_for_event</xml>'
     def get_active_events(self):
-        if self.db_path is None or '':
-            raise ValueError( "Database path cannot be empty" )
-
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
-        result_dict = {}
     
         try:
-            # Do a simple select query
             c.execute('SELECT event_id, raw_xml FROM event')
-            rows = c.fetchall()
 
-            # Have the event_id be the key, and the lxml value be the object
-            for row in rows:
-                result_dict[row[0]] = row[1]
-            logging.debug('Retrived active events from the database.')
-        except:
-            logging.error('Was not able to get the active events.')
+            # key= event_id, val= xml blob
+            return {_id: blob for _id, blob in c.fetchall()}
+        except Exception as ex:
+            logging.exception('Error getting active events! %s', ex)
+            raise
         finally:
             c.close()
             conn.close()
 
-        return result_dict
-        
         
     # Clears our the current event table and shoves in new ones
     #
     # records - A list of tuples with the folowing format:
     #             ('vtn_id', 'event_id', MOD_NUM(integer), '<xml>for_event</xml>')
     def update_all_events(self, records):
-        if self.db_path is None or '':
-            raise ValueError( "Database path cannot be empty" )
-
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
     
@@ -123,12 +111,15 @@ class DBHandler(object):
             logging.debug('Wiped the event table to update all of the events')
 
             # Insert them into the database
-            c.executemany('Insert INTO event(vtn_id, event_id, mod_num, raw_xml) VALUES(?, ?, ?, ?)', records)
+            c.executemany('''Insert INTO event(vtn_id, event_id, mod_num, raw_xml)
+                    VALUES(?, ?, ?, ?)''', records)
             logging.debug('Inserted the new events into the database')
             conn.commit()
-        except:
-            logging.error('Was not able to update all of the events in database table.')
+
+        except Exception as ex:
+            logging.error('Error updating events! %s', ex)
             conn.rollback()
+            raise
         finally:
             c.close()
             conn.close()
@@ -141,21 +132,20 @@ class DBHandler(object):
     # raw_xml - Raw XML data for event
     # vtn_id - ID of issuing VTN
     def update_event(self, e_id, mod_num, raw_xml, vtn_id):
-        if self.db_path is None or '':
-            raise ValueError( "Database path cannot be empty" )
-
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
 
         try:
             # Insert it into the database (or update it)
-            c.execute('REPLACE INTO event(vtn_id, event_id, mod_num, raw_xml) VALUES(?, ?, ?, ?)',
-                      (vtn_id, e_id, mod_num, raw_xml))
+            c.execute('''REPLACE INTO event(vtn_id, event_id, mod_num, raw_xml)
+                    VALUES(?, ?, ?, ?)''', (vtn_id, e_id, mod_num, raw_xml))
             conn.commit()
-            logging.debug('Inserted/updated event_id=`%s` into database.', e_id)
-        except:
-            logging.error('Was not able to update event [%s] in database table.', e_id)
+            logging.debug('Inserted/updated event_id [%s]', e_id)
+
+        except Exception as ex:
+            logging.error('Error updating event ID [%s]: %s', e_id, ex)
             conn.rollback()
+            raise
         finally:
             c.close()
             conn.close()
@@ -164,39 +154,29 @@ class DBHandler(object):
     # Gets an event for us
     #
     # event_id - ID of event
-    # Returns: None on failure, or lxml eiEvent object
+    # Returns: None on failure, or xml blob
     def get_event(self, event_id):
-        if self.db_path is None or '':
-            raise ValueError( "Database path cannot be empty" )
-
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
-        raw_xml = None
     
         try:
             # Run the SELECT and see if we got a result
             c.execute('SELECT raw_xml FROM event WHERE event_id=?', (event_id,))
-            rows = c.fetchall()
+            row = c.fetchone()
+            return row[0] if row else None
 
-            # Note: there is only one row, w/ one field
-            for row in rows:
-                raw_xml = row[0]
-        except:
-            logging.error('Was not able to get event `%s` from database.', event_id)
+        except Exception as ex:
+            logging.error('Error getting event ID [%s]: %s', event_id, ex)
+            raise
         finally:
             c.close()
             conn.close()
-
-        return raw_xml 
 
 
     # Remove a list of events
     #
     # event_ids - List of event IDs
     def remove_events(self, event_ids):
-        if self.db_path is None or '':
-            raise ValueError( "Database path cannot be empty" )
-
         # Exit if we don't have any EventIDs
         if not event_ids:
             return
@@ -213,9 +193,13 @@ class DBHandler(object):
             c.executemany('DELETE FROM event WHERE event_id=?', event_ids) 
             logging.debug('Removed events from database.')
             conn.commit()
-        except:
-            logging.error('Was not able to clear out events from the database.')
+            return c.rowcount
+
+        except Exception as ex:
+            logging.error('Error deleting events: %s', ex)
             conn.rollback()
+            raise
+
         finally:
             c.close()
             conn.close()
