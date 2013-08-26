@@ -91,7 +91,7 @@ class EventHandler(object):
         Class constructor
 
         ven_id -- What is the ID of our unit
-        vtn_ids -- CSV string of VTN Ids we pat attention to
+        vtn_ids -- CSV string of VTN Ids to accept
         market_contexts -- Another CSV string
         group_id -- Which group we belong to
         resource_id -- What resouce we are
@@ -129,7 +129,8 @@ class EventHandler(object):
         elif self.oadr_profile_level == OADR_PROFILE_20B:
             self.ns_map = NS_B
         else:
-            self.oadr_profile_level = OADR_PROFILE_20A     # Default/Safety, make it the 2.0a spec 
+            # Default/Safety, make it the 2.0a spec 
+            self.oadr_profile_level = OADR_PROFILE_20A
             self.ns_map = NS_A      
 
         self.db = database.DBHandler()
@@ -150,7 +151,8 @@ class EventHandler(object):
         requestID = payload.findtext('pyld:requestID',namespaces=self.ns_map)
         vtnID = payload.findtext('ei:vtnID',namespaces=self.ns_map)
 
-        # If we got a payload from an VTN that is not in our list, send it a 400 message and return
+        # If we got a payload from an VTN that is not in our list, 
+        # send it a 400 message and return
         if self.vtn_ids and (vtnID not in self.vtn_ids):
             logging.warn("Unexpected VTN ID: %s, expected one of %r", vtnID, self.vtn_ids)
             return self.build_error_response( requestID, '400', 'Unknown vtnID: %s'% vtnID )
