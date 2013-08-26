@@ -12,23 +12,26 @@ class BaseHandler(object):
 
     Member Variables:
     --------
-    event_handler -- The single instance of the event_handler, gotten via event.get_instace()
+    event_handler -- The event.EventHandler instance
     event_controller -- A control.EventController object.
     _exit -- A threading object via threading.Event()
     --------
     '''
 
-    def __init__(self, event_config):
+    def __init__(self, event_config, control_opts={}):
         '''
-        Initizlie the Base
+        base class initializer, creates an `event.EventHandler` as 
+        `self.event_handler` and a `control.EventController` as 
+        `self.event_controller
 
-        event_config -- A dictionary containing key-word arugments for the
-                        EventHandller
+        event_config -- A dictionary containing keyword arugments for the
+                        EventHandler
+        control_opts -- a dict of opts for `control.EventController` init
         '''
 
         # Get an EventHandler and an EventController
         self.event_handler = event.EventHandler(**event_config)
-        self.event_controller = control.EventController(self.event_handler)
+        self.event_controller = control.EventController(self.event_handler, **control_opts)
 
         # Add an exit thread for the module
         self._exit = threading.Event()

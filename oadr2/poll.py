@@ -43,8 +43,11 @@ class OpenADR2(base.BaseHandler):
    
 
     def __init__(self, event_config, vtn_base_uri,
-                 ven_client_cert_key=None, ven_client_cert_pem=None,
-                 vtn_poll_interval=DEFAULT_VTN_POLL_INTERVAL, vtn_ca_certs=None,
+                 control_opts={},
+                 ven_client_cert_key=None, 
+                 ven_client_cert_pem=None,
+                 vtn_ca_certs=None,
+                 vtn_poll_interval=DEFAULT_VTN_POLL_INTERVAL, 
                  start_thread=True):
         '''
         Sets up the class and intializes the HTTP client.
@@ -60,7 +63,7 @@ class OpenADR2(base.BaseHandler):
         '''
 
         # Call the parent's methods
-        base.BaseHandler.__init__(self, event_config)
+        super(OpenADR2,self).__init__(event_config, control_opts)
 
         # Get the VTN's base uri set
         self.vtn_base_uri = vtn_base_uri
@@ -124,7 +127,7 @@ class OpenADR2(base.BaseHandler):
         if self.poll_thread is not None:
             self.poll_thread.join(2)        # they are daemons.
 
-        base.BaseHandler.exit(self)         # Parent class
+        super(OpenADR2,self).exit()
    
 
     def poll_vtn_loop(self):
@@ -189,7 +192,12 @@ class OpenADR2(base.BaseHandler):
             logging.debug('Reply to: %s\n%s\n----', 
                     event_uri, 
                     etree.tostring(reply, pretty_print=True) )
-            self.send_reply(reply, event_uri)                   # And send it
+
+            # tell the control loop that events may have updated
+            # (note `self.event_controller` is defined in base.BaseHandler)
+            self.event_controller.events_updated()
+
+            self.send_reply(reply, event_uri)       # And send the response
 
 
     def send_reply(self, payload, uri):

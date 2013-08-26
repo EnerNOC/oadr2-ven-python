@@ -1,5 +1,3 @@
-# Contains the EventController and ControlInterface classes
-
 __author__ = 'Benjamin N. Summerton <bsummerton@enernoc.com>'
 
 import logging
@@ -7,34 +5,30 @@ import time
 import threading
 from oadr2 import event, schedule
 
-CONTROL_LOOP_INTERVAL = 30           # update control state every X second
-
-event_levels = ( 
-    'relay_1',    # 1+
-    'relay_2',    # 2+
-)
-
+CONTROL_LOOP_INTERVAL = 30   # update control state every X second
 
 
 # Used by poll.OpenADR2 to handle events
 class EventController(object):
     '''
-    EventController is a class that is used to pass events to the EventHandler.
+    EventController tracks active events and fires a callback when event levels have 
+    changed.
 
     Member Variables:
     --------
     event_handler -- The EventHandler instance
     current_signal_level -- current signal level of a realy/point
     control_loop_interval -- How often to run the control loop
-    event_levels -- A variable that contains the current event levels
     control_thread -- threading.Thread() object w/ name of 'oadr2.control'
     _control_loop_signal -- threading.Event() object
-    _control -- A ControlInterface instance
     _exit -- A threading.Thread() object
     '''
 
 
-    def __init__(self, event_handler, start_thread=True, control_loop_interval=CONTROL_LOOP_INTERVAL):
+    def __init__(self, event_handler, 
+            signal_changed_callback = None,
+            start_thread = True,
+            control_loop_interval = CONTROL_LOOP_INTERVAL):
         '''
         Initialize the Event Controller
 
@@ -43,11 +37,12 @@ class EventController(object):
         control_loop_interval -- How often to run the control loop
         '''
 
-        # Set the control interface
-        self._control = ControlInterface()
-
         self.event_handler = event_handler
         self.current_signal_level = 0 
+
+        self.signal_changed_callback = signal_changed_callback \
+                if signal_changed_callback is not None \
+                else self.default_signal_callback
 
         # Add an exit thread for the module
         self._exit = threading.Event()
@@ -55,9 +50,6 @@ class EventController(object):
 
         self._control_loop_signal = threading.Event()
         self.control_loop_interval = control_loop_interval
-
-        global event_levels
-        self.event_levels = event_levels
 
         # The control thread
         self.control_thread = None
@@ -70,6 +62,13 @@ class EventController(object):
             self.control_thread.start()
 
 
+    def events_updated(self):
+        '''
+        Call this when some events have updated to cause the control
+        loop to refresh
+        '''
+        self._control_loop_signal.set()
+
 
     def control_event_loop(self):
         '''
@@ -78,19 +77,19 @@ class EventController(object):
         except when an updated event is received by a VTN.
         '''
 
-        self._exit.wait(10)  # give a couple seconds before performing first control
-
-        try:
-            self.current_signal_level = self.get_current_relay_level()
-
-        except Exception, ex:
-            logging.warn("Error reading initial hardware state! %s",ex)
+        self._exit.wait(5)  # give a couple seconds before performing first control
 
         while not self._exit.is_set():
             try:
                 logging.debug("Updating control states...")
                 events = self.event_handler.get_active_events()
-                self.do_control(events)
+
+                new_signal_level = self.do_control(events)
+                logging.debug("Highest signal level is: %f", new_signal_level)
+
+                changed = self.set_signal_level(new_signal_level)
+                if changed:
+                    logging.debug("Updated current signal level!")
 
             except Exception as ex:
                 logging.exception("Control loop error: %s", ex)
@@ -109,7 +108,7 @@ class EventController(object):
         events -- List of lxml.etree.ElementTree objects (with OpenADR 2.0 tags)
         '''
         highest_signal_val = 0
-        remove_events = []
+        remove_events = []  # to collect expired events
         for e in events:
             try:
                 e_id = event.get_event_id(e, self.event_handler.ns_map)
@@ -153,115 +152,55 @@ class EventController(object):
             except Exception as e:
                 logging.exception("Error parsing event: %s", e)
 
+        # remove any events that we've detected have ended.
+        # TODO callback for expired events??
         self.event_handler.remove_events(remove_events)
-
-        logging.debug("Highest signal level is: %f", highest_signal_val)
         
-        self.toggle_relays(highest_signal_val)
+        return highest_signal_val
 
     
-    def toggle_relays(self, signal_level):
+    def set_signal_level(self, signal_level):
         '''
-        Toggles the relays on the hardware (via the control interface).
+        Called once each control interval with the 'current' signal level.
+        If the signal level has changed from `current_signal_level`, this 
+        calls `self.signal_changed_callback(current_signal_level, new_signal_level)`
+        and then sets `self.current_signal_level = new_signal_level`.
 
         signal_level -- If it is the same as the current signal level, the
                         function will exit.  Else, it will change the
                         signal relay
+
+        returns True if the signal level has changed from the `current_signal_level`
+            or False if the signal level has not changed.
         '''
 
-        # Run a check
-        signal_level = float(signal_level)
+        # check if the current signal level is different from the new signal level
         if signal_level == self.current_signal_level:
-            return
+            return False
 
-        for i in range(len(self.event_levels)):
-            control_val = 1 if i < signal_level else 0
-            self._control.control_set(self.event_levels[i], control_val)
+        try:
+            self.signal_changed_callback(self.current_signal_level, signal_level)
+        
+        except Exception as ex:
+            logging.exception("Error from callback! %s", ex)
 
         self.current_signal_level = signal_level
+        return True
 
 
-    def get_current_relay_level(self):
+    def default_signal_callback(self, old_level, new_level):
         '''
-        Gets the current relay levels for us (from the control interface).
-
-        Returns: '0' if all control points are at '0'.  Any non-Zero number
-                  otherwise.
+        The default callback just logs a message.
         '''
+        logging.debug("Signal level changed from %f to %f", 
+                old_level, new_level )
 
-        for i in xrange(len(self.event_levels),0,-1):
-            val = self._control.control_get(self.event_levels[i - 1])
-            if val:
-                return i
-
-        return 0
 
     def exit(self):
         '''
         Shutdown the threads for the module
         '''
-
-        self._control_loop_signal.set()     # notify the control loop to exit
-        self.control_thread.join(2)
         self._exit.set()
-
-
-class ControlInterface(object):
-    '''
-    ControlInterface is a class that is used to interface with hardware that
-    this code may run on.
-
-    Member variables:
-    _register -- A sorty of "memory," to store/get relay values.
-    '''
-
-
-    def __init__(self):
-        '''
-        Initialize the class.
-        '''
-        # A sort of mock register/memory for the feedbacks and event levels
-        self._register = {
-            'pulse_1': 0,       # (val, timestamp)
-            'pulse_2': 0,
-            'relay_1': 0,
-            'relay_2': 0,
-        }
-
-    def control_get(self, point_id):
-        '''
-        Get the value of a control point.
-
-        point_id -- The point we want to poll (a string ID)
-
-        Returns: A tuple of (VALUE, TIMESTAMP) on sucess, or a tuple of 
-                 (None, None) on failure.
-        '''
-
-        # Perform an 'Control Get' operation
-        if point_id in self._register:
-            return self._register[point_id], time.time()
-        else:
-            # We shoudn't be here
-            logging.warn('In ControlInterface, tried to get point_id "%s," which doesn\'t exist in the register.'%(point_id))
-            return None, None
-
-
-    def control_set(self, point_id, value=None):
-        '''
-        Set a control point.
-
-        point_id -- The point we want to set (a string ID)
-        value -- What we want to set it to.
-        '''
-
-        # Set something in the "register,"
-        if (point_id in self._register) and (value is not None):
-            self._register[point_id] = value
-        else:
-            if value is None:
-                logging.warn('In ControInterface, tried to set a None type value for register w/ point_id=%s.'%(point_id))
-            if point_id not in self._register:
-                logging.warn('In ControlInterface, tried to set pont_id "%s," which doesn\'t exist in the register.'%(point_id))
-
+        self._control_loop_signal.set()  # interrupt sleep
+        self.control_thread.join(2)
 
