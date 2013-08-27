@@ -77,12 +77,17 @@ class OpenADR2(base.BaseHandler):
         self.xmpp_client.add_event_handler('session_start', self.xmpp_session_start)
         self.xmpp_client.add_event_handler('message', self.xmpp_message)
         self.xmpp_client.register_plugin('xep_0030')
-        self.xmpp_client.register_plugin('xep_0199', pconfig={'keepalive': True, 'frequency': 240})
-        self.xmpp_client.register_plugin('OpenADR2Plugin', module='oadr2.xmpp',
-                                         pconfig={'callback': self._handle_payload_callback})
+        self.xmpp_client.register_plugin('xep_0199', 
+                pconfig={'keepalive': True, 'frequency': 240})
+        self.xmpp_client.register_plugin('OpenADR2Plugin', 
+                module='oadr2.xmpp',
+                pconfig={'callback': self._handle_oadr_payload})
 
         # Setup system information disco
-        self.xmpp_client['xep_0030'].add_identity(category='system', itype='version', name='OpenADR2 Python VEN')
+        self.xmpp_client['xep_0030'].add_identity(
+                category='system', 
+                itype='version', 
+                name='OpenADR2 Python VEN')
        
         # Connect and thread the client
         self.xmpp_client.connect((self.server_addr, self.server_port))
@@ -114,18 +119,18 @@ class OpenADR2(base.BaseHandler):
         logging.info(msg)
 
         
-    def _handle_payload_callback(self, msg):
+    def _handle_oadr_payload(self, msg):
         '''
-        Handle a "payload message."
+        Handle OpenADR2 payloads
 
         msg - A type of OADR2Message
         '''
 
         # Try to generate a response payload and send it back
         try:
-            logging.info('Signal (message) handler received a payload, processing...')
             response = self.event_handler.handle_payload(msg.payload)
-            logging.info('Response Payload:\n%s\n----\n'%lxml_etree.tostring(response, pretty_print=True))
+            logging.debug('Response Payload:\n%s\n----\n',
+                    lxml_etree.tostring(response, pretty_print=True))
             self.send_reply( response, msg.from_ )
         except Exception, ex:
             logging.exception("Error processing OADR2 log request: %s", ex)
@@ -135,7 +140,8 @@ class OpenADR2(base.BaseHandler):
         '''
         Make and OADR2 Message and sends it to someone (if they are online)
 
-        payload - The body of the IQ stanza, i.e. the OpenADR xml stuff (lxml.etree.Element object)
+        payload - The body of the IQ stanza, i.e. the OpenADR xml stuff 
+                  (lxml.etree.Element object)
         to - The JID of whom the messge will go to
         '''
 
@@ -146,7 +152,8 @@ class OpenADR2(base.BaseHandler):
 
         # Build the IQ reply and send it
         iq_reply = Iq(self.xmpp_client, sto=to, stype='set')
-        iq_reply.set_payload(std_XML(lxml_etree.tostring(payload))) # Change the lxml object to a standard Python XML object
+        # Change the lxml object to a standard Python XML object
+        iq_reply.set_payload(std_XML(lxml_etree.tostring(payload))) 
         self.xmpp_client.send(iq_reply)
 
 
@@ -309,21 +316,23 @@ class OpenADR2Plugin(base_plugin):
         '''
 
         self.xep = 'OADR2'
-        self.description = 'OpenADR 2.0 XMPP EiEvent Implementation'
-        self.xmpp.add_handler("<iq type='set'><oadrDistributeEvent xmlns='%s' /></iq>"%event.OADR_XMLNS_A,
-                              self._handle_iq)
+        self.description = 'OpenADR 2.0 XMPP Plugin'
+        self.xmpp.add_handler(
+                "<iq type='set'><oadrDistributeEvent xmlns='%s' /></iq>" % event.OADR_XMLNS_A,
+                self._handle_iq )
         self.callback = self.config.get('callback')
 
 
     def _handle_iq(self, iq):
         '''
         Handle an IQ stanza with a payload containing an "oadrDistributeEvent"
-        tag.  This will pass an OADR2MEssage to 'self.callback'.
+        tag.  This will pass an OADR2Message to 'self.callback'.
 
         iq -- A SleekXMPP Iq object.
         '''
 
-        logging.info('OpenADR2Plugin: recieved a valid IQ Stanza.  [from=%s, to=%s]'%(iq.get('from'), iq.get('to')))
+        logging.debug('OpenADR2 payload [from=%s, to=%s]',
+                (iq.get('from'), iq.get('to')))
         try:
             # Convert a "Standard Python Library XML object," to one from lxml
             payload_element = lxml_etree.XML(std_ElementTree.tostring(iq[0]))
