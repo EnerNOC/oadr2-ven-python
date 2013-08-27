@@ -14,7 +14,7 @@ import random
 DB_PATH = 'oadr2.db'
 
 
-DURATION_PAT = r'([+-])?P(?:(\d+)W)?(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
+DURATION_PAT = r'([+-])?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
 DURATION_REX = re.compile(DURATION_PAT)
 
 
