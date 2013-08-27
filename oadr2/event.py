@@ -157,6 +157,8 @@ class EventHandler(object):
             logging.warn("Unexpected VTN ID: %s, expected one of %r", vtnID, self.vtn_ids)
             return self.build_error_response( requestID, '400', 'Unknown vtnID: %s'% vtnID )
 
+        updated_events={}
+
         # Loop through all of the oadr:oadrEvent 's in the payload
         for evt in payload.iterfind('oadr:oadrEvent',namespaces=self.ns_map):
             response_required = evt.findtext("oadr:oadrResponseRequired",namespaces=self.ns_map)
@@ -210,7 +212,6 @@ class EventHandler(object):
                 reply_events.append((e_id,e_mod_num,requestID,opt,status))
 
             # We have a new event or an updated old one
-            updated_events={}
             if (old_event is None) or (e_mod_num > old_mod_num):
                 start_offset = get_start_before_after(evt, self.ns_map)
 
