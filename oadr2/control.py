@@ -57,7 +57,7 @@ class EventController(object):
         if start_thread:
             self.control_thread = threading.Thread(
                     name='oadr2.control',
-                    target=self.control_event_loop)
+                    target=self._control_event_loop)
             self.control_thread.daemon = True
             self.control_thread.start()
 
@@ -70,7 +70,19 @@ class EventController(object):
         self._control_loop_signal.set()
 
 
-    def control_event_loop(self):
+    def get_current_signal_level(self):
+        '''
+        Return the signal level and event ID of the currently active event.
+        If no events are active, this will return (0,None)
+        '''
+
+        signal_level, event_id, expired_events = self._calculate_current_event_status(
+                self.event_handler.get_active_events() )
+
+        return signal_level, event_id
+
+
+    def _control_event_loop(self):
         '''
         This is the threading loop to perform control based on current oadr events
         Note the current implementation simply loops based on CONTROL_LOOP_INTERVAL
@@ -84,10 +96,10 @@ class EventController(object):
                 logging.debug("Updating control states...")
                 events = self.event_handler.get_active_events()
 
-                new_signal_level = self.do_control(events)
+                new_signal_level = self._update_control(events)
                 logging.debug("Highest signal level is: %f", new_signal_level)
 
-                changed = self.set_signal_level(new_signal_level)
+                changed = self._update_signal_level(new_signal_level)
                 if changed:
                     logging.debug("Updated current signal level!")
 
@@ -99,16 +111,34 @@ class EventController(object):
 
         logging.info("Control loop exiting.")
 
-
-    def do_control(self, events):
+    
+    def _update_control(self, events):
         '''
-        Called by `control_event_loop()` when event states should be updated.
-        This parses through the events, and toggles them if they are active. 
+        Called by `control_event_loop()` to determine the current signal level.
+        This also deletes any events from the database that have expired.
 
         events -- List of lxml.etree.ElementTree objects (with OpenADR 2.0 tags)
         '''
+        signal_level, evt_id, remove_events = self._calculate_current_event_status(events)
+
+        if remove_events:
+            # remove any events that we've detected have ended.
+            # TODO callback for expired events??
+            logging.debug("Removing completed events: %s", remove_events)
+            self.event_handler.remove_events(remove_events)
+        
+        return signal_level
+
+
+    def _calculate_current_event_status(self, events):
+        '''
+        returns a 3-tuple of (current_signal_level, current_event_id, remove_events=[])
+        '''
+
         highest_signal_val = 0
+        current_event_id = None
         remove_events = []  # to collect expired events
+
         for e in events:
             try:
                 e_id = event.get_event_id(e, self.event_handler.ns_map)
@@ -147,19 +177,18 @@ class EventController(object):
                         e_id, e_mod_num, interval_uid, signal_level )
                 
                 signal_level = float(signal_level) if signal_level is not None else 0
-                highest_signal_val = max(signal_level, highest_signal_val)
+
+                if signal_level > highest_signal_val:
+                    highest_signal_val = signal_level
+                    current_event_id = e_id
 
             except Exception as e:
                 logging.exception("Error parsing event: %s", e)
 
-        # remove any events that we've detected have ended.
-        # TODO callback for expired events??
-        self.event_handler.remove_events(remove_events)
-        
-        return highest_signal_val
-
+        return highest_signal_val, current_event_id, remove_events
     
-    def set_signal_level(self, signal_level):
+    
+    def _update_signal_level(self, signal_level):
         '''
         Called once each control interval with the 'current' signal level.
         If the signal level has changed from `current_signal_level`, this 
