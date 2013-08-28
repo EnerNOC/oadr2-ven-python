@@ -11,6 +11,6 @@ setup(
     author_email = 'tnichols@enernoc.com',
     url = 'http://open.enernoc.com',
     packages = find_packages('.', exclude=['*.tests']),
-    install_requires = ['lxml', 'sleekxmpp', 'dnspython'],
+    install_requires = ['lxml', 'sleekxmpp', 'dnspython', 'python-dateutil'],
     zip_safe = False,
 )
