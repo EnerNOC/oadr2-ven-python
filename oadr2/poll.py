@@ -184,8 +184,8 @@ class OpenADR2(base.BaseHandler):
             logging.debug('Got Payload:\n%s\n----', etree.tostring(payload, pretty_print=True))
             reply = self.event_handler.handle_payload(payload)
 
-        except:
-            logging.warn("error parsing response:\n%s",data)
+        except Exception as ex:
+            logging.warn("error parsing payload: %s", ex)
 
         # If we have a generated reply:
         if reply is not None:
