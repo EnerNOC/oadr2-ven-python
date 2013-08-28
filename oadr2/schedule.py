@@ -8,8 +8,10 @@ __author__ = 'Thom Nichols tnichols@enernoc.com'
 
 import re
 import datetime
+import calendar
 import random
 #import logging
+from dateutil.relativedelta import relativedelta
 
 DB_PATH = 'oadr2.db'
 
@@ -20,15 +22,15 @@ DURATION_REX = re.compile(DURATION_PAT)
 
 def parse_duration(dur_str):
     '''
-    Parse a duration string as defined by RFC-5545 xCal spec:
-    http://tools.ietf.org/html/rfc5545#section-3.3.6
+    Parse a duration string as defined by ISO-8601:
+    http://en.wikipedia.org/wiki/ISO_8601#Durations
 
-    Returns a tuple of `(sign,weeks,days,hours,minutes,seconds)`
+    Returns a tuple of `(sign,years,months,days,hours,minutes,seconds)`
     If any of the increments are omitted, the value for that 
     increment will be `0`.  If sign is omitted, it defaults to '+'
 
     Example:
-    `parse_duration('P15DT5H20S')` -> `(None, None, '15', '5', None, '20')`
+    `parse_duration('P15DT5H20S')` -> `('+', 0, 0, 15, 5, 0, 20)`
     '''
     groups = DURATION_REX.match(dur_str).groups()
     vals = tuple(int(i) if i is not None else 0 for i in groups[1:])
@@ -74,6 +76,25 @@ def choose_interval(start,interval_list,now=None):
     return None
 
 
+def duration_to_delta(duration_str):
+    '''
+    Take a duration string like 'PT5M' or 'P0Y0M1DT3H2M1S'
+    and convert it to a dateutil relativedelta
+
+    Returns - a 2-tuple containing (delta, sign) where sign is 
+              either '+' or '-'
+    '''
+    vals = parse_duration( duration_str )
+    sign = vals[0]
+    return relativedelta(
+                years= vals[1],
+                months= vals[2],
+                days= vals[3],
+                hours= vals[4],
+                minutes= vals[5],
+                seconds= vals[6] ), sign
+
+
 def durations_to_dates(start,dur_list):
     '''
     Return a date which is the designated amount of time
@@ -89,15 +110,7 @@ def durations_to_dates(start,dur_list):
     new_list = [start,]
 
     for i in xrange(len(dur_list)):
-        dur_vals = parse_duration(dur_list[i])
-        sign = dur_vals[0]
-        delta = datetime.timedelta(
-                weeks= dur_vals[1],
-                days= dur_vals[2],
-                hours= dur_vals[3],
-                minutes= dur_vals[4],
-                seconds= dur_vals[5] )
-
+        delta, sign = duration_to_delta( dur_list[i] )
         new_dttm = new_dttm + delta if sign == '+' else new_dttm - delta
         new_list.append( new_dttm )
 
@@ -117,24 +130,23 @@ def dttm_to_str(dttm, include_msec=True):
 
 
 def random_offset(dttm, start_before, start_after):
-        if not start_before and not start_after:
-            return dttm # no offset
+    '''
+    Given a start datetime, and a start_before and start_after duration,
+    pick a random start time for this event.
+    '''
+    if not start_before and not start_after:
+        return dttm # no offset
 
-        dur_vals = parse_duration(start_before if start_before else start_after)
+    min_dttm = dttm - duration_to_delta(start_before)[0] \
+            if start_before else dttm
 
-        delta = datetime.timedelta(
-                weeks= dur_vals[1],
-                days= dur_vals[2],
-                hours= dur_vals[3],
-                minutes= dur_vals[4],
-                seconds= dur_vals[5] )
+    max_dttm = dttm + duration_to_delta(start_after)[0] \
+            if start_after else dttm
 
-        # TODO might be more correct to add this value to a dttm, then figure
-        # the seconds difference between start & new val
-        total_seconds = (delta.seconds + delta.days * 24 * 3600)
-        random_offset = random.randint( 0, total_seconds)
+    timestamp1 = int(calendar.timegm(min_dttm.utctimetuple()))
+    timestamp2 = int(calendar.timegm(max_dttm.utctimetuple()))
 
-        delta = datetime.timedelta(seconds=random_offset)
+    random_start = random.randint(timestamp1, timestamp2)
 
-        return dttm - delta if start_before else dttm + delta
+    return datetime.datetime.utcfromtimestamp(random_start)
 
