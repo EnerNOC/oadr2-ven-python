@@ -244,7 +244,7 @@ class EventHandler(object):
         # call the callback of updated & removed events.  
         try:
             if self.event_callback is not None:
-                self.event_callback(self, updated_events, remove_events )
+                self.event_callback(updated_events, remove_events )
 
         except Exception as ex:
             logging.warn("Error in event callback! %s", ex)
