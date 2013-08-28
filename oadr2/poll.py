@@ -21,7 +21,7 @@ DEFAULT_VTN_POLL_INTERVAL = 300      # poll the VTN every X seconds
 OADR2_URI_PATH = 'OpenADR2/Simple/'  # URI of where the VEN needs to request from
 
 # A Cipther list.  To configure properly, see: http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT
-HTTPS_CIPHERS = 'TLS_RSA_WITH_AES_256_CBC_SHA'
+HTTPS_CIPHERS = 'TLS_RSA_WITH_AES_128_CBC_SHA'
 
 
 
