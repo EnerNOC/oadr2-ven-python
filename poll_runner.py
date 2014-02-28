@@ -30,7 +30,6 @@ def main():
 
     config = {
         'vtn_poll_interval': VTN_POLL_INTERVAL,
-        'ven_id':  VEN_ID,
         'vtn_base_uri': BASE_URI,
         'ven_client_cert_key': CLIENT_CERT_KEY_PATH,
         'ven_client_cert_pem': CLIENT_CERT_PATH,
